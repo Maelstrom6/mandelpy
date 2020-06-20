@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 import time
-from .kernels import buddha_factory, anti_buddha_factory, mandelbrot_factory
+from .kernels import factories
 from .settings import Settings
 import typing
 from .color_schemes import color
@@ -32,34 +32,15 @@ def identify_blocks(width, height, mirror_x=False, mirror_y=False, block_size=(5
 
 def compile_kernel(settings: Settings):
     """Compile the function with all available constant settings"""
-    if settings.tipe == "buddha":
-        f = buddha_factory(settings.width, settings.height,
-                           settings.left, settings.right,
-                           settings.top, settings.bottom,
-                           settings.max_iter, settings.threshold,
-                           settings.z0, settings.fn,
-                           settings.transform, settings.inv_transform)
-    elif settings.tipe == "antibuddha":
-        f = anti_buddha_factory(settings.width, settings.height,
-                                settings.left, settings.right,
-                                settings.top, settings.bottom,
-                                settings.max_iter, settings.threshold,
-                                settings.z0, settings.fn,
-                                settings.transform, settings.inv_transform)
-    elif settings.tipe == "mand":
-        f = mandelbrot_factory(settings.width, settings.height,
-                               settings.left, settings.right,
-                               settings.top, settings.bottom,
-                               settings.max_iter, settings.threshold,
-                               settings.z0, settings.fn,
-                               settings.transform)
-    else:
-        f = mandelbrot_factory(settings.width, settings.height,
-                               settings.left, settings.right,
-                               settings.top, settings.bottom,
-                               settings.max_iter, settings.threshold,
-                               settings.z0, settings.fn,
-                               settings.transform)
+    f = factories.get(settings.tipe, factories["mand"])(
+        settings.width, settings.height,
+        settings.left, settings.right,
+        settings.top, settings.bottom,
+        settings.max_iter, settings.threshold,
+        settings.z0, settings.fn,
+        settings.transform, settings.inv_transform,
+        settings.orbit_id)
+
     return f
 
 
@@ -67,7 +48,7 @@ def create_array(settings: Settings, verbose=False):
     """Generates the numpy array of visits to particular points. This is done in blocks since the
     kernel does not allow jobs of size (2000, 2000)."""
     # The mandelbrot has a smoothing factor that results in float outputs
-    if settings.tipe == "mand":
+    if (settings.tipe == "mand") or (settings.tipe == "julia"):
         dtype = np.float
     else:
         dtype = np.int

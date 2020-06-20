@@ -5,7 +5,7 @@ import typing
 
 class Settings:
     def __init__(self, width=1000, height=1000, left=-2, right=2, top=2, bottom=-2, max_iter=200,
-                 threshold=2, tipe="buddha", z0=complex(0, 0),
+                 threshold=2, tipe="mand", z0=complex(0, 0),
                  fn: typing.Union[typing.Callable, AutoJitCUDAKernel] = None,
                  transform: typing.Union[typing.Callable, AutoJitCUDAKernel] = None,
                  inv_transform: typing.Union[typing.Callable, AutoJitCUDAKernel] = None,
@@ -44,9 +44,14 @@ class Settings:
             there are no bugs and it might be something on CUDA's side.
             If you do find that there is a bug causing this, please put in a PR.
 
-        Warnings:
-            If you want to change `fn` or `transform` or inv_transform` after this initialization,
-            use set_fn or other applicable setter methods.
+        Notes:
+            Generally, high iterations are only needed if you are zooming in on the edge of the
+            M-set or you are creating buddha images.
+
+            Orbits generally require a higher threshold than 2 in order to look pretty.
+
+            Try and generate a computationally intensive image at a small resolution first to
+            see if you reall want to make it.
         """
 
         self.width: int = width
@@ -60,12 +65,10 @@ class Settings:
         self.tipe: str = tipe
         self.z0: complex = z0
 
-        self.fn = None
-        self.set_fn(fn)
+        self.fn = fn
 
-        self.transform = None
-        self.inv_transform = None
-        self.set_transforms(transform, inv_transform)
+        self.transform = transform
+        self.inv_transform = inv_transform
 
         self.mirror_x: bool = mirror_x
         self.mirror_y: bool = mirror_y
@@ -74,52 +77,100 @@ class Settings:
 
         self.block_size: typing.Tuple[2] = block_size
 
-    def set_fn(self, fn):
+    @property
+    def fn(self):
+        return self.__fn
+
+    @fn.setter
+    def fn(self, fn):
         if fn is None:
             @cuda.jit(device=True)
             def fn(z, c):
                 return z ** 2 + c
 
-            self.fn = fn
+            self.__fn = fn
         elif isinstance(fn, typing.Callable):
             # turn the default function into a cuda function.
             # note that there are extreme limitations and it is
             # suggested only to use `math` and `cmath` for these functions
-            self.fn = cuda.jit(device=True)(fn)
+            self.__fn = cuda.jit(device=True)(fn)
         else:
-            self.fn = fn
+            self.__fn = fn
 
-    def set_transforms(self, transform, inv_transform):
-        if (transform is None) or (inv_transform is None):
+    @property
+    def transform(self) -> AutoJitCUDAKernel:
+        return self.__transform
+
+    @transform.setter
+    def transform(self, transform: typing.Union[typing.Callable, AutoJitCUDAKernel]):
+        if transform is None:
             @cuda.jit(device=True)
             def transform(z):
                 return z
 
+            self.__transform = transform
+        elif isinstance(transform, typing.Callable):
+            # turn the default function into a cuda function.
+            # note that there are extreme limitations and it is
+            # suggested only to use `math` and `cmath` for these functions
+            self.__transform = cuda.jit(device=True)(transform)
+        else:
+            self.__transform = transform
+
+    @property
+    def inv_transform(self) -> AutoJitCUDAKernel:
+        return self.__transform
+
+    @inv_transform.setter
+    def inv_transform(self, inv_transform: typing.Union[typing.Callable, AutoJitCUDAKernel]):
+        if inv_transform is None:
             @cuda.jit(device=True)
             def inv_transform(z):
                 return z
 
-            self.transform = transform
-            self.inv_transform = inv_transform
-        elif isinstance(transform, typing.Callable) and isinstance(inv_transform, typing.Callable):
+            self.__inv_transform = inv_transform
+        elif isinstance(inv_transform, typing.Callable):
             # turn the default function into a cuda function.
             # note that there are extreme limitations and it is
             # suggested only to use `math` and `cmath` for these functions
-            self.transform = cuda.jit(device=True)(transform)
-            self.inv_transform = cuda.jit(device=True)(inv_transform)
+            self.__inv_transform = cuda.jit(device=True)(inv_transform)
         else:
-            self.transform = transform
-            self.inv_transform = inv_transform
+            self.__inv_transform = inv_transform
 
-    def set_frame(self, left: float, right: float, top: float, bottom: float):
-        self.left: float = left
-        self.right: float = right
-        self.top: float = top
-        self.bottom: float = bottom
+    @property
+    def frame(self) -> typing.Tuple[float, float, float, float]:
+        return self.left, self.right, self.top, self.bottom
 
-    def set_focal(self, centre_real: float, centre_imag: float, zoom: float):
+    @frame.setter
+    def frame(self, frame):
+        self.left: float = frame[0]
+        self.right: float = frame[1]
+        self.top: float = frame[2]
+        self.bottom: float = frame[3]
+
+    @property
+    def focal(self) -> typing.Tuple[float, float, float]:
+        """
+        Returns: A tuple of the centre real coordinate, the centre imaginary coordinate and the zoom
+        """
+        return (self.right + self.left) / 2, (self.top + self.bottom) / 2, (
+                    self.right - self.left) / 2
+
+    @focal.setter
+    def focal(self, focal: typing.Tuple[float, float, float]):
+        """
+        Args:
+            focal: A tuple of the centre real coordinate, the centre imaginary coordinate
+            and the zoom
+        """
+        centre_real: float = focal[0]
+        centre_imag: float = focal[1]
+        zoom: float = focal[2]
+
+        if zoom < 0:  # I generally keep checks like these minimal
+            raise ValueError("the third component (zoom) cannot be negative.")
+
         self.left: float = centre_real - zoom
         self.right: float = centre_real + zoom
         self.top: float = centre_imag + zoom
         self.bottom: float = centre_imag - zoom
-

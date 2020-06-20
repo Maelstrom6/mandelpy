@@ -1,13 +1,4 @@
-from numba import cuda
-import numpy as np
-z = complex(0, 0)
+from mandelpy.generator import identify_blocks
 
 
-@cuda.jit
-def double_data(data):
-    id_x = cuda.threadIdx.x
-    id_y = cuda.blockIdx.x
-    data[id_x, id_y] = 1.2
-
-
-print(type(double_data))
+print(identify_blocks(1100, 1100, block_size=(500, 500)))
