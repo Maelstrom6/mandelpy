@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def color(array: np.ndarray, tipe: str, scheme_id: int, max_iter: int):
+def color(array: np.ndarray, tipe: str, scheme_id: int, max_iter: int) -> np.ndarray:
     """The main function to edit an array to add colors based on the color ID.
 
     Args:
@@ -20,7 +20,7 @@ def color(array: np.ndarray, tipe: str, scheme_id: int, max_iter: int):
     return array
 
 
-def color_mand(array: np.ndarray, scheme_id: int, max_iter: int):
+def color_mand(array: np.ndarray, scheme_id: int, max_iter: int) -> np.ndarray:
 
     new_array = np.copy(array)
 
@@ -38,7 +38,7 @@ def color_mand(array: np.ndarray, scheme_id: int, max_iter: int):
     return new_array
 
 
-def color_buddha(array: np.ndarray, scheme_id: int):
+def color_buddha(array: np.ndarray, scheme_id: int) -> np.ndarray:
     m = array.max((0, 1), initial=1)  # Get the max of the rgb
 
     if scheme_id == 1:

@@ -7,13 +7,9 @@ import typing
 from .color_schemes import color
 
 
-def identify_blocks(width, height, mirror_x=False, mirror_y=False, block_size=(500, 500)):
-    """Identifies blocks to make from width and height. List of x, y, width, height pairs.
-
-    Warnings:
-        If mirror_x or mirror_y is True, all width and height must be multiples of block_size.
-
-    """
+def identify_blocks(width, height, mirror_x=False, mirror_y=False, block_size=(500, 500)) -> \
+        typing.List[typing.Tuple[int, int, int, int]]:
+    """Identifies blocks to make from width and height. List of x, y, width, height pairs."""
     block_multiple_y = 2 if mirror_x else 1
     block_multiple_x = 2 if mirror_y else 1
 
@@ -44,7 +40,7 @@ def compile_kernel(settings: Settings):
     return f
 
 
-def create_array(settings: Settings, verbose=False):
+def create_array(settings: Settings, verbose=False) -> np.ndarray:
     """Generates the numpy array of visits to particular points. This is done in blocks since the
     kernel does not allow jobs of size (2000, 2000)."""
     # The mandelbrot has a smoothing factor that results in float outputs

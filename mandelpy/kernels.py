@@ -39,10 +39,10 @@ def buddha_factory(width: int, height: int, left: float, right: float, top: floa
             return round((x_point - left) * width / (right - left)), \
                    round((y_point - top) * height / (bottom - top))
 
-        id_x = cuda.threadIdx.x
-        id_y = cuda.blockIdx.x
+        id_x = cuda.blockIdx.x + offset_x
+        id_y = cuda.threadIdx.x + offset_y
 
-        c = pixel_to_point(id_x + offset_x, id_y + offset_y)
+        c = pixel_to_point(id_x, id_y)
         c = transform(c)
 
         zn = z0
@@ -107,10 +107,10 @@ def anti_buddha_factory(width: int, height: int, left: float, right: float, top:
             return round((x_point - left) * width / (right - left)), \
                    round((y_point - top) * height / (bottom - top))
 
-        id_x = cuda.threadIdx.x
-        id_y = cuda.blockIdx.x
+        id_x = cuda.blockIdx.x + offset_x
+        id_y = cuda.threadIdx.x + offset_y
 
-        c = pixel_to_point(id_x + offset_x, id_y + offset_y)
+        c = pixel_to_point(id_x, id_y)
         c = transform(c)
 
         zn = z0
@@ -174,10 +174,10 @@ def mandelbrot_factory(width: int, height: int, left: float, right: float, top: 
             return complex(left + (right - left) * x / width,
                            top + (bottom - top) * y / height)
 
-        id_x = cuda.threadIdx.x
-        id_y = cuda.blockIdx.x
+        id_x = cuda.blockIdx.x + offset_x
+        id_y = cuda.threadIdx.x + offset_y
 
-        c = pixel_to_point(id_x + offset_x, id_y + offset_y)
+        c = pixel_to_point(id_x, id_y)
         c = transform(c)
 
         zn = z0
@@ -191,11 +191,11 @@ def mandelbrot_factory(width: int, height: int, left: float, right: float, top: 
                 escaped = True
                 # the smoothing factor
                 nu = math.log(math.log(abs(zn)) / math.log(2.0)) / math.log(2.0)
-                data[id_x + offset_x, id_y + offset_y] = i - nu
+                data[id_x, id_y] = i - nu
                 break
 
         if not escaped:
-            data[id_x + offset_x, id_y + offset_y] = max_iter
+            data[id_x, id_y] = max_iter
 
     return mandelbrot
 
@@ -231,13 +231,13 @@ def julia_factory(width: int, height: int, left: float, right: float, top: float
             return complex(left + (right - left) * x / width,
                            top + (bottom - top) * y / height)
 
-        id_x = cuda.threadIdx.x
-        id_y = cuda.blockIdx.x
+        id_x = cuda.blockIdx.x + offset_x
+        id_y = cuda.threadIdx.x + offset_y
 
         c = z0
         # c = transform(c)
 
-        zn = pixel_to_point(id_x + offset_x, id_y + offset_y)
+        zn = pixel_to_point(id_x, id_y)
         zn = transform(zn)
         # can't dynamically define array size
         escaped = False
@@ -249,11 +249,11 @@ def julia_factory(width: int, height: int, left: float, right: float, top: float
                 escaped = True
                 # the smoothing factor
                 nu = 1 - (threshold - abs(zn)) / (abs(zn) - abs(zn_min_one))
-                data[id_x + offset_x, id_y + offset_y] = i - nu
+                data[id_x, id_y] = i - nu
                 break
 
         if not escaped:
-            data[id_x + offset_x, id_y + offset_y] = max_iter
+            data[id_x, id_y] = max_iter
 
     return julia
 
@@ -294,10 +294,10 @@ def julai_buddha_factory(width: int, height: int, left: float, right: float, top
             return round((x_point - left) * width / (right - left)), \
                    round((y_point - top) * height / (bottom - top))
 
-        id_x = cuda.threadIdx.x
-        id_y = cuda.blockIdx.x
+        id_x = cuda.blockIdx.x + offset_x
+        id_y = cuda.threadIdx.x + offset_y
 
-        zn = pixel_to_point(id_x + offset_x, id_y + offset_y)
+        zn = pixel_to_point(id_x, id_y)
         zn = transform(zn)
 
         c = z0
@@ -357,10 +357,10 @@ def orbit_factory(width: int, height: int, left: float, right: float, top: float
             return complex(left + (right - left) * x / width,
                            top + (bottom - top) * y / height)
 
-        id_x = cuda.threadIdx.x
-        id_y = cuda.blockIdx.x
+        id_x = cuda.blockIdx.x + offset_x
+        id_y = cuda.threadIdx.x + offset_y
 
-        c = pixel_to_point(id_x + offset_x, id_y + offset_y)
+        c = pixel_to_point(id_x, id_y)
         c = transform(c)
 
         zn = complex(0, 0)
@@ -371,7 +371,7 @@ def orbit_factory(width: int, height: int, left: float, right: float, top: float
             for i in range(max_iter):
                 zn = fn(zn, c)
                 if zn.real ** 2 + zn.imag ** 2 > threshold ** 2:
-                    data[id_x + offset_x, id_y + offset_y] = i
+                    data[id_x, id_y] = i
                     break
                 hor_dist = abs(zn.real - trap.real)
                 ver_dist = abs(zn.imag - trap.imag)
@@ -386,7 +386,7 @@ def orbit_factory(width: int, height: int, left: float, right: float, top: float
             for i in range(max_iter):
                 zn = fn(zn, c)
                 if zn.real ** 2 + zn.imag ** 2 > threshold ** 2:
-                    data[id_x + offset_x, id_y + offset_y] = i
+                    data[id_x, id_y] = i
                     break
                 point_dist = abs(zn - trap)
                 if (distance > point_dist) \
@@ -397,17 +397,20 @@ def orbit_factory(width: int, height: int, left: float, right: float, top: float
             for i in range(max_iter):
                 zn = fn(zn, c)
                 if zn.real ** 2 + zn.imag ** 2 > threshold ** 2:
-                    data[id_x + offset_x, id_y + offset_y] = i
+                    data[id_x, id_y] = i
                     break
                 point_dist = abs(zn - trap)
                 if distance > point_dist:
                     distance = point_dist
 
-        data[id_x + offset_x, id_y + offset_y] = 100 * distance
-
+        data[id_x, id_y] = 100 * distance
 
     return orbits
 
 
-factories = {"buddha": buddha_factory, "mand": mandelbrot_factory, "julia": julia_factory,
-             "julia_buddha": julai_buddha_factory, "orbit": orbit_factory}
+factories = {
+    "buddha": buddha_factory,
+    "mand": mandelbrot_factory,
+    "julia": julia_factory,
+    "julia_buddha": julai_buddha_factory,
+    "orbit": orbit_factory}

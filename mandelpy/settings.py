@@ -1,6 +1,7 @@
 from numba import cuda
 from numba.cuda.compiler import AutoJitCUDAKernel
 import typing
+from cmath import *  # used for presets
 
 
 class Settings:
@@ -38,12 +39,6 @@ class Settings:
                 `block_size` is the maximum size of any given block. It is not advisable to go
                 larger than (1000, 1000).
 
-        Warnings:
-            If `width` or `height` is not an integer multiple of `block_size` and `mirror_x`
-            and/or `mirror_y` is True, visual artifacts may appear. I am fairly, confident that
-            there are no bugs and it might be something on CUDA's side.
-            If you do find that there is a bug causing this, please put in a PR.
-
         Notes:
             Generally, high iterations are only needed if you are zooming in on the edge of the
             M-set or you are creating buddha images.
@@ -52,6 +47,22 @@ class Settings:
 
             Try and generate a computationally intensive image at a small resolution first to
             see if you reall want to make it.
+
+        Examples:
+            This should create the defualt mandelbrot that everyone is used to:
+
+            >>> from mandelpy import Settings, create_image
+            >>> settings = Settings()
+            >>> pillow_img = create_image(settings)
+            >>> pillow_img.show()  # doctest.ignore
+
+            To create the default buddhabrot:
+
+            >>> from mandelpy import Settings, create_image
+            >>> settings = Settings()
+            >>> settings.tipe = "buddha"
+            >>> pillow_img = create_image(settings)
+            >>> pillow_img.show()  # doctest.ignore
         """
 
         self.width: int = width
@@ -119,7 +130,7 @@ class Settings:
 
     @property
     def inv_transform(self) -> AutoJitCUDAKernel:
-        return self.__transform
+        return self.__inv_transform
 
     @inv_transform.setter
     def inv_transform(self, inv_transform: typing.Union[typing.Callable, AutoJitCUDAKernel]):
@@ -142,7 +153,7 @@ class Settings:
         return self.left, self.right, self.top, self.bottom
 
     @frame.setter
-    def frame(self, frame):
+    def frame(self, frame: typing.Tuple[float, float, float, float]):
         self.left: float = frame[0]
         self.right: float = frame[1]
         self.top: float = frame[2]
@@ -154,7 +165,7 @@ class Settings:
         Returns: A tuple of the centre real coordinate, the centre imaginary coordinate and the zoom
         """
         return (self.right + self.left) / 2, (self.top + self.bottom) / 2, (
-                    self.right - self.left) / 2
+                self.right - self.left) / 2
 
     @focal.setter
     def focal(self, focal: typing.Tuple[float, float, float]):
@@ -174,3 +185,36 @@ class Settings:
         self.right: float = centre_real + zoom
         self.top: float = centre_imag + zoom
         self.bottom: float = centre_imag - zoom
+
+
+@cuda.jit(device=True)
+def power(z, n):
+    """Finds z^n using CUDA-supported functions"""
+    return exp(n * log(z))
+
+
+def the_box():
+    s = Settings()
+    s.width = 1000
+    s.height = 500
+    s.max_iter = 500
+    s.tipe = "buddha"
+    s.frame = (-4, 4, 2, -2)
+    s.transform = lambda z: tan(asin(z)) ** 2
+    s.inv_transform = lambda z: sin(atan(sqrt(z)))
+    s.mirror_x = True
+    s.mirror_y = True
+    return s
+
+
+def throne():
+    s = Settings()
+    s.max_iter = 500
+    s.tipe = "buddha"
+    s.focal = (0, 0, 2.2)
+    s.transform = lambda z: tan(acos(z)) ** 2
+    s.inv_transform = lambda z: cos(atan(sqrt(z)))
+    return s
+
+
+presets = {"the_box": the_box(), "throne": throne()}

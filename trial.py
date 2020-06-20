@@ -1,4 +1,11 @@
-from mandelpy.generator import identify_blocks
+from cmath import *
+import numpy as np
 
+t = lambda z: tan(asin(z)) ** 2
+it = lambda z: sin(atan(sqrt(z)))
 
-print(identify_blocks(1100, 1100, block_size=(500, 500)))
+for x in np.arange(-2, 2):
+    for y in np.arange(-2, 2):
+        print(it(t(complex(x, y))))
+        print(it(t(complex(x, -y))))
+        print()
