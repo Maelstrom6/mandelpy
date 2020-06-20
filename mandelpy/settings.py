@@ -5,8 +5,8 @@ from cmath import *  # used for presets
 
 
 class Settings:
-    def __init__(self, width=1000, height=1000, left=-2, right=2, top=2, bottom=-2, max_iter=200,
-                 threshold=2, tipe="mand", z0=complex(0, 0),
+    def __init__(self, width=1000, height=1000, left: float = -2, right: float = 2, top: float = 2,
+                 bottom: float = -2, max_iter=200, threshold=2, tipe="mand", z0=complex(0, 0),
                  fn: typing.Union[typing.Callable, AutoJitCUDAKernel] = None,
                  transform: typing.Union[typing.Callable, AutoJitCUDAKernel] = None,
                  inv_transform: typing.Union[typing.Callable, AutoJitCUDAKernel] = None,
@@ -47,6 +47,9 @@ class Settings:
 
             Try and generate a computationally intensive image at a small resolution first to
             see if you reall want to make it.
+
+            If you want the number of iterations to be above say 10000, you would need to
+            decrease the block size. This reduces the overall memory on your GPU.
 
         Examples:
             This should create the defualt mandelbrot that everyone is used to:
@@ -172,7 +175,7 @@ class Settings:
         """
         Args:
             focal: A tuple of the centre real coordinate, the centre imaginary coordinate
-            and the zoom
+            and the zoom. The focal point
         """
         centre_real: float = focal[0]
         centre_imag: float = focal[1]
@@ -193,28 +196,53 @@ def power(z, n):
     return exp(n * log(z))
 
 
-def the_box():
-    s = Settings()
-    s.width = 1000
-    s.height = 500
-    s.max_iter = 500
-    s.tipe = "buddha"
-    s.frame = (-4, 4, 2, -2)
-    s.transform = lambda z: tan(asin(z)) ** 2
-    s.inv_transform = lambda z: sin(atan(sqrt(z)))
-    s.mirror_x = True
-    s.mirror_y = True
-    return s
+presets = {
+    "the_box": Settings(tipe="buddha", max_iter=500,
+                        left=-4, right=4, width=2000,
+                        transform=lambda z: tan(asin(z)) ** 2,
+                        inv_transform=lambda z: sin(atan(sqrt(z))),
+                        mirror_x=True, mirror_y=True),
 
+    "throne": Settings(tipe="buddha", max_iter=500,
+                       left=-2.2, right=2.2, top=2.4, bottom=-2.4,
+                       transform=lambda z: tan(acos(z)) ** 2,
+                       inv_transform=lambda z: cos(atan(sqrt(z))),
+                       mirror_x=True, mirror_y=True),
 
-def throne():
-    s = Settings()
-    s.max_iter = 500
-    s.tipe = "buddha"
-    s.focal = (0, 0, 2.2)
-    s.transform = lambda z: tan(acos(z)) ** 2
-    s.inv_transform = lambda z: cos(atan(sqrt(z)))
-    return s
+    "cave": Settings(tipe="buddha", max_iter=500,
+                     left=-4, right=4, top=4, bottom=-4,
+                     transform=lambda z: 1 / z,
+                     inv_transform=lambda z: 1 / z,
+                     mirror_x=True),
 
+    "tree": Settings(left=-4, right=4, top=4, bottom=-4,
+                     transform=lambda z: atan(sin(exp(z))),
+                     inv_transform=lambda z: log(asin(tan(z))),
+                     mirror_x=True),
 
-presets = {"the_box": the_box(), "throne": throne()}
+    "spider": Settings(left=-16, right=16, top=16, bottom=-16,
+                       transform=lambda z: log(power(z, 1.0 / 6.0)),
+                       inv_transform=lambda z: power(exp(z), 6.0),
+                       mirror_x=True),
+
+    "bedbug": Settings(max_iter=500, tipe="buddha",
+                       left=-4, right=4, top=4, bottom=-4,
+                       transform=lambda z: tan(acos(atan(z))),
+                       inv_transform=lambda z: tan(cos(atan(z))),
+                       mirror_x=True),
+
+    "snow_globe": Settings(max_iter=500, tipe="buddha",
+                           left=-4, right=4, top=4, bottom=-4,
+                           transform=lambda z: power(exp(asin(z)), 2),
+                           inv_transform=lambda z: sin(log(sqrt(z))),
+                           mirror_x=True),
+
+    "gates": Settings(max_iter=500, tipe="buddha",
+                      left=-4, right=4, top=4, bottom=-4,
+                      transform=lambda z: 1 / sin(cos(z)),
+                      inv_transform=lambda z: acos(asin(1 / z)),
+                      mirror_x=True),
+
+    "buddha3": Settings(max_iter=500, tipe="buddha",
+                        fn=lambda zn, c: power(zn, 3) + c)
+}

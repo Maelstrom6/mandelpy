@@ -12,6 +12,10 @@ A Mandelbrot and Buddhabrot viewer with GPU acceleration using NVIDIA's CUDA too
 
   The main image manipulation library.
   
+- imageio
+
+  To create GIFs.
+  
 - Numba
 
   Requires the Python 64bit interpreter. Chances are, if you managed to install TensorFlow for

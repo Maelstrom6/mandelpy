@@ -79,6 +79,14 @@ class TestGenerator(unittest.TestCase):
         desired = factories["buddha"](*args)
         self.assertEqual(result.py_func.__name__, desired.py_func.__name__)
 
+    def test_create_image(self):
+        from mandelpy.settings import Settings
+        s = Settings()
+        one_block = g.create_image(s)
+        s.block_size = (s.width//2, s.height//2)
+        many_blocks = g.create_image(s)
+        self.assertEqual(one_block, many_blocks)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -45,6 +45,18 @@ def buddha_factory(width: int, height: int, left: float, right: float, top: floa
         c = pixel_to_point(id_x, id_y)
         c = transform(c)
 
+        # if in the main bulb
+        w = 0.25 - c
+        if abs(w) < (math.cos(abs(phase(w)) / 2)) ** 2:
+            # data[id_x, id_y, 0] = data[id_x, id_y, 0] + 5
+            return
+
+        # if in secondary bulb
+        dist_from_min_one = abs(c + 1)
+        if dist_from_min_one < 0.25:
+            # data[id_x, id_y, 0] = data[id_x, id_y, 0] + 5
+            return
+
         zn = z0
         zn = fn(zn, c)
         visited_coords = cuda.local.array(max_iter, dtype=numba.complex64)
@@ -61,7 +73,7 @@ def buddha_factory(width: int, height: int, left: float, right: float, top: floa
                     coord = inv_transform(visited_coords[j])
                     x_pixel, y_pixel = point_to_pixel(coord.real, coord.imag)
                     if (0 < y_pixel < height) and (0 < x_pixel < width):
-                        if j < 0.01 * max_iter:
+                        if (j < 0.01 * max_iter) or (0.2 * max_iter < j < 0.21 * max_iter):
                             data[x_pixel, y_pixel, 2] += 1
                         if j < 0.1 * max_iter:
                             data[x_pixel, y_pixel, 1] += 1

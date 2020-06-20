@@ -1,25 +1,21 @@
 from mandelpy import generator
-from mandelpy.settings import Settings, presets
+from mandelpy.settings import Settings, presets, power
+from PIL import ImageFilter
+import numpy as np
 from cmath import *
 
-settings = Settings()
 
-# t = lambda z: tan(acos(z)) ** 2
-# it = lambda z: cos(atan(sqrt(z)))
-#
-# settings.set_transforms(t, it)
-# settings.transform = lambda z: 1/z
-# settings.transform = lambda z: 1/z
-# # settings.set_transforms(t, it)
-# settings.tipe = "buddha"
-# settings.orbit_id = 1
-# settings.threshold = 2
-# settings.color_scheme = 4
-# settings.focal = (1, 0, 3)
-# settings.width = 500
-# settings.height = 500
-settings = presets["the_box"]
+settings = presets["throne"]
+settings.block_size = (500, 500)
+settings.width = 8000
+settings.height = 8000
+settings.max_iter = 10000
+settings.threshold = 100
+settings.color_scheme = 4
 img = generator.create_image(settings, verbose=True)
-img.show()
+#img = img.filter(ImageFilter.GaussianBlur(1))
+#img = img.resize((1024, 1024))
+img.save("test.png")  # since gif is lossless, we can just use png
+
 
 
