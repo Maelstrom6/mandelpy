@@ -4,6 +4,45 @@ from cmath import *
 import math
 
 
+def pixel_to_point_wrapper(width, height, left, right, top, bottom):
+    @cuda.jit(device=True)
+    def pixel_to_point(x, y):
+        return complex(left + (right - left) * x / width,
+                       top + (bottom - top) * y / height)
+
+    return pixel_to_point
+
+
+def point_to_pixel_wrapper(width, height, left, right, top, bottom):
+    @cuda.jit(device=True)
+    def point_to_pixel(x_point, y_point):
+        return round((x_point - left) * width / (right - left)), \
+               round((y_point - top) * height / (bottom - top))
+
+    return point_to_pixel
+
+
+@cuda.jit(device=True)
+def is_in_main_bulbs(c):
+    # if in the main bulb
+    w = 0.25 - c
+    if abs(w) < (math.cos(abs(phase(w)) / 2)) ** 2:
+        return True
+
+    # if in secondary bulb
+    dist_from_min_one = abs(c + 1)
+    if dist_from_min_one < 0.25:
+        return True
+    return False
+
+
+@cuda.jit(device=True)
+def identify_ids(offset_x, offset_y):
+    id_x = cuda.blockIdx.x + offset_x
+    id_y = cuda.threadIdx.x + offset_y
+    return id_x, id_y
+
+
 def buddha_factory(width: int, height: int, left: float, right: float, top: float, bottom: float,
                    max_iter: int, threshold: float, z0: complex, fn, transform, inv_transform,
                    orbit_id):
@@ -28,48 +67,34 @@ def buddha_factory(width: int, height: int, left: float, right: float, top: floa
         The compiled, jitted function for the buddhabrot
 
     """
+    pixel_to_point = pixel_to_point_wrapper(width, height, left, right, top, bottom)
+    point_to_pixel = point_to_pixel_wrapper(width, height, left, right, top, bottom)
 
     @cuda.jit
     def buddha(data, offset_x, offset_y):
-        def pixel_to_point(x, y):
-            return complex(left + (right - left) * x / width,
-                           top + (bottom - top) * y / height)
-
-        def point_to_pixel(x_point, y_point):
-            return round((x_point - left) * width / (right - left)), \
-                   round((y_point - top) * height / (bottom - top))
-
-        id_x = cuda.blockIdx.x + offset_x
-        id_y = cuda.threadIdx.x + offset_y
-
-        c = pixel_to_point(id_x, id_y)
-        c = transform(c)
-
-        # if in the main bulb
-        w = 0.25 - c
-        if abs(w) < (math.cos(abs(phase(w)) / 2)) ** 2:
-            # data[id_x, id_y, 0] = data[id_x, id_y, 0] + 5
-            return
-
-        # if in secondary bulb
-        dist_from_min_one = abs(c + 1)
-        if dist_from_min_one < 0.25:
-            # data[id_x, id_y, 0] = data[id_x, id_y, 0] + 5
-            return
-
+        id_x, id_y = identify_ids(offset_x, offset_y)
+        c = transform(pixel_to_point(id_x, id_y))
         zn = z0
-        zn = fn(zn, c)
+
+        # cycle detection algorithm initial values
+        check_step = 1
+        epsilon = (right - left) / 1000000000  # scales as you zoom in
+        zn_cycle = c
+
+        if is_in_main_bulbs(c):
+            return
+
+        zn = fn(zn, c)  # iterate once so we don't add to visited_coords for no reason
         visited_coords = cuda.local.array(max_iter, dtype=numba.complex64)
-        # can't dynamically define array size
 
         for i in range(max_iter):
             zn = fn(zn, c)
             visited_coords[i] = zn
 
+            # the finite iteration algorithm
             if zn.real ** 2 + zn.imag ** 2 > threshold ** 2:
                 j = 0
                 while visited_coords[j] != 0:
-                    # for j, coord in enumerate(visited_coords):
                     coord = inv_transform(visited_coords[j])
                     x_pixel, y_pixel = point_to_pixel(coord.real, coord.imag)
                     if (0 < y_pixel < height) and (0 < x_pixel < width):
@@ -81,13 +106,22 @@ def buddha_factory(width: int, height: int, left: float, right: float, top: floa
                     j += 1
                 break
 
+            # cycle detection algorithm
+            if i > check_step:
+                if abs(zn - zn_cycle) < epsilon:
+                    return
+                if i == check_step * 2:
+                    check_step *= 2
+                    zn_cycle = zn
+
     return buddha
 
 
 def anti_buddha_factory(width: int, height: int, left: float, right: float, top: float,
                         bottom: float, max_iter: int, threshold: float, z0: complex, fn,
                         transform, inv_transform, orbit_id):
-    """A wrapper function for the buddha kernel so that it compiles after inputting the above args
+    """A wrapper function for the anti-buddha kernel so that it compiles after inputting the above
+    args
 
     Args:
         width: The entire width in pixels of the image
@@ -109,23 +143,15 @@ def anti_buddha_factory(width: int, height: int, left: float, right: float, top:
 
     """
 
+    pixel_to_point = pixel_to_point_wrapper(width, height, left, right, top, bottom)
+    point_to_pixel = point_to_pixel_wrapper(width, height, left, right, top, bottom)
+
     @cuda.jit
     def anti_buddha(data, offset_x, offset_y):
-        def pixel_to_point(x, y):
-            return complex(left + (right - left) * x / width,
-                           top + (bottom - top) * y / height)
-
-        def point_to_pixel(x_point, y_point):
-            return round((x_point - left) * width / (right - left)), \
-                   round((y_point - top) * height / (bottom - top))
-
-        id_x = cuda.blockIdx.x + offset_x
-        id_y = cuda.threadIdx.x + offset_y
-
-        c = pixel_to_point(id_x, id_y)
-        c = transform(c)
-
+        id_x, id_y = identify_ids(offset_x, offset_y)
+        c = transform(pixel_to_point(id_x, id_y))
         zn = z0
+
         zn = fn(zn, c)
         visited_coords = cuda.local.array(max_iter, dtype=numba.complex64)
         # can't dynamically define array size
@@ -158,7 +184,8 @@ def anti_buddha_factory(width: int, height: int, left: float, right: float, top:
 def mandelbrot_factory(width: int, height: int, left: float, right: float, top: float,
                        bottom: float, max_iter: int, threshold: float, z0: complex, fn,
                        transform, inv_transform, orbit_id):
-    """A wrapper function for the buddha kernel so that it compiles after inputting the above args
+    """A wrapper function for the mandelbrot kernel so that it compiles after inputting the above
+    args
 
     Args:
         width: The entire width in pixels of the image
@@ -179,32 +206,39 @@ def mandelbrot_factory(width: int, height: int, left: float, right: float, top: 
         The compiled, jitted function for the buddhabrot
 
     """
+    pixel_to_point = pixel_to_point_wrapper(width, height, left, right, top, bottom)
 
     @cuda.jit
     def mandelbrot(data, offset_x, offset_y):
-        def pixel_to_point(x, y):
-            return complex(left + (right - left) * x / width,
-                           top + (bottom - top) * y / height)
-
-        id_x = cuda.blockIdx.x + offset_x
-        id_y = cuda.threadIdx.x + offset_y
-
-        c = pixel_to_point(id_x, id_y)
-        c = transform(c)
-
+        id_x, id_y = identify_ids(offset_x, offset_y)
+        c = transform(pixel_to_point(id_x, id_y))
         zn = z0
-        zn = fn(zn, c)
-        # can't dynamically define array size
+
         escaped = False
+
+        # cycle detection algorithm initial values
+        check_step = 1
+        epsilon = (right - left) / 1000000000  # scales as you zoom in
+        zn_cycle = c
 
         for i in range(max_iter):
             zn = fn(zn, c)
+
+            # finite iteration algorithm
             if zn.real ** 2 + zn.imag ** 2 > threshold ** 2:
                 escaped = True
                 # the smoothing factor
                 nu = math.log(math.log(abs(zn)) / math.log(2.0)) / math.log(2.0)
                 data[id_x, id_y] = i - nu
                 break
+
+            # cycle detection algorithm
+            if i > check_step:
+                if abs(zn - zn_cycle) < epsilon:
+                    return
+                if i == check_step * 2:
+                    check_step *= 2
+                    zn_cycle = zn
 
         if not escaped:
             data[id_x, id_y] = max_iter
@@ -215,7 +249,7 @@ def mandelbrot_factory(width: int, height: int, left: float, right: float, top: 
 def julia_factory(width: int, height: int, left: float, right: float, top: float,
                   bottom: float, max_iter: int, threshold: float, z0: complex, fn,
                   transform, inv_transform, orbit_id):
-    """A wrapper function for the buddha kernel so that it compiles after inputting the above args
+    """A wrapper function for the julia kernel so that it compiles after inputting the above args
 
     Args:
         width: The entire width in pixels of the image
@@ -236,15 +270,11 @@ def julia_factory(width: int, height: int, left: float, right: float, top: float
         The compiled, jitted function for the buddhabrot
 
     """
+    pixel_to_point = pixel_to_point_wrapper(width, height, left, right, top, bottom)
 
     @cuda.jit
     def julia(data, offset_x, offset_y):
-        def pixel_to_point(x, y):
-            return complex(left + (right - left) * x / width,
-                           top + (bottom - top) * y / height)
-
-        id_x = cuda.blockIdx.x + offset_x
-        id_y = cuda.threadIdx.x + offset_y
+        id_x, id_y = identify_ids(offset_x, offset_y)
 
         c = z0
         # c = transform(c)
@@ -270,7 +300,7 @@ def julia_factory(width: int, height: int, left: float, right: float, top: float
     return julia
 
 
-def julai_buddha_factory(width: int, height: int, left: float, right: float, top: float,
+def julia_buddha_factory(width: int, height: int, left: float, right: float, top: float,
                          bottom: float,
                          max_iter: int, threshold: float, z0: complex, fn, transform,
                          inv_transform, orbit_id):
@@ -295,24 +325,16 @@ def julai_buddha_factory(width: int, height: int, left: float, right: float, top
         The compiled, jitted function for the buddhabrot
 
     """
+    pixel_to_point = pixel_to_point_wrapper(width, height, left, right, top, bottom)
+    point_to_pixel = point_to_pixel_wrapper(width, height, left, right, top, bottom)
 
     @cuda.jit
     def julia_buddha(data, offset_x, offset_y):
-        def pixel_to_point(x, y):
-            return complex(left + (right - left) * x / width,
-                           top + (bottom - top) * y / height)
 
-        def point_to_pixel(x_point, y_point):
-            return round((x_point - left) * width / (right - left)), \
-                   round((y_point - top) * height / (bottom - top))
-
-        id_x = cuda.blockIdx.x + offset_x
-        id_y = cuda.threadIdx.x + offset_y
-
-        zn = pixel_to_point(id_x, id_y)
-        zn = transform(zn)
-
+        id_x, id_y = identify_ids(offset_x, offset_y)
+        zn = transform(pixel_to_point(id_x, id_y))
         c = z0
+
         visited_coords = cuda.local.array(max_iter, dtype=numba.complex64)
         # can't dynamically define array size
 
@@ -341,7 +363,7 @@ def julai_buddha_factory(width: int, height: int, left: float, right: float, top
 def orbit_factory(width: int, height: int, left: float, right: float, top: float,
                   bottom: float, max_iter: int, threshold: float, z0: complex, fn,
                   transform, inv_transform, orbit_id):
-    """A wrapper function for the buddha kernel so that it compiles after inputting the above args
+    """A wrapper function for the orbit kernel so that it compiles after inputting the above args
 
     Args:
         width: The entire width in pixels of the image
@@ -362,20 +384,15 @@ def orbit_factory(width: int, height: int, left: float, right: float, top: float
         The compiled, jitted function for the buddhabrot
 
     """
+    pixel_to_point = pixel_to_point_wrapper(width, height, left, right, top, bottom)
 
     @cuda.jit
     def orbits(data, offset_x, offset_y):
-        def pixel_to_point(x, y):
-            return complex(left + (right - left) * x / width,
-                           top + (bottom - top) * y / height)
 
-        id_x = cuda.blockIdx.x + offset_x
-        id_y = cuda.threadIdx.x + offset_y
-
-        c = pixel_to_point(id_x, id_y)
-        c = transform(c)
-
+        id_x, id_y = identify_ids(offset_x, offset_y)
+        c = transform(pixel_to_point(id_x, id_y))
         zn = complex(0, 0)
+
         trap = z0
         distance = 100000
 
@@ -424,5 +441,5 @@ factories = {
     "buddha": buddha_factory,
     "mand": mandelbrot_factory,
     "julia": julia_factory,
-    "julia_buddha": julai_buddha_factory,
+    "julia_buddha": julia_buddha_factory,
     "orbit": orbit_factory}

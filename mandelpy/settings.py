@@ -2,6 +2,7 @@ from numba import cuda
 from numba.cuda.compiler import AutoJitCUDAKernel
 import typing
 from cmath import *  # used for presets
+import types
 
 
 class Settings:
@@ -50,6 +51,12 @@ class Settings:
 
             If you want the number of iterations to be above say 10000, you would need to
             decrease the block size. This reduces the overall memory on your GPU.
+
+        Warnings:
+            If you decide to have a custom function for `fn`, `transform` or `inv_transform`,
+            then you may set it as a `lambda`, `AutoJitCUDAKernel` or a regular function. Note
+            that if this function/method uses other functions or methods then those child methods
+            MUST be jitted with CUDA with the `@cuda.jit(device=True)` decorator.
 
         Examples:
             This should create the defualt mandelbrot that everyone is used to:
@@ -103,7 +110,8 @@ class Settings:
                 return z ** 2 + c
 
             self.__fn = fn
-        elif isinstance(fn, typing.Callable):
+        elif isinstance(fn, types.FunctionType) \
+                or isinstance(fn, types.LambdaType):
             # turn the default function into a cuda function.
             # note that there are extreme limitations and it is
             # suggested only to use `math` and `cmath` for these functions
@@ -123,7 +131,8 @@ class Settings:
                 return z
 
             self.__transform = transform
-        elif isinstance(transform, typing.Callable):
+        elif isinstance(transform, types.FunctionType) \
+                or isinstance(transform, types.LambdaType):
             # turn the default function into a cuda function.
             # note that there are extreme limitations and it is
             # suggested only to use `math` and `cmath` for these functions
@@ -143,7 +152,8 @@ class Settings:
                 return z
 
             self.__inv_transform = inv_transform
-        elif isinstance(inv_transform, typing.Callable):
+        elif isinstance(inv_transform, types.FunctionType) \
+                or isinstance(inv_transform, types.LambdaType):
             # turn the default function into a cuda function.
             # note that there are extreme limitations and it is
             # suggested only to use `math` and `cmath` for these functions
