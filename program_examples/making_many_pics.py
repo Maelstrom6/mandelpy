@@ -1,13 +1,14 @@
-from mandelpy import generator
-from mandelpy.settings import Settings, presets, power
+from mandelpy import create_image, Settings, power
 from PIL import ImageFilter
 import numpy as np
 from numba import cuda
 from cmath import *
 
+
 @cuda.jit(device=True)
 def inv(z):
     return 1 / z
+
 
 @cuda.jit(device=True)
 def square(z):
@@ -32,8 +33,8 @@ inv_functions = [inv, log, asin, acos, atan, sqrt,
 #     settings.block_size = (1000, 1000)
 #     settings.color_scheme = 4
 #     img = generator.create_image(settings, verbose=True)
-#     img.save(rf"C:\Users\Chris\Documents\PycharmProjects\mandelpy\images\buddha1\buddha"
-#              rf"{i:03}.png")
+#     # you must create a folder `buddha` in images
+#     img.save(rf"..\images\buddha1\buddha{i:03}.png")
 
 for i, f1 in enumerate(functions):
     for j, f2 in enumerate(functions):
@@ -48,6 +49,6 @@ for i, f1 in enumerate(functions):
         settings.focal = (0, 0, 4)
         settings.block_size = (1000, 1000)
         settings.color_scheme = 4
-        img = generator.create_image(settings, verbose=True)
-        img.save(rf"C:\Users\Chris\Documents\PycharmProjects\mandelpy\images\buddha2\buddha"
-                 rf"{i:03} {j:03}.png")
+        img = create_image(settings, verbose=True)
+        # you must create a folder `buddha2` in images
+        img.save(rf"..\images\buddha2\buddha{i:03} {j:03}.png")

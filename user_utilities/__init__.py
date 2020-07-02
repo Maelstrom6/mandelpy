@@ -31,7 +31,7 @@ def make_gif(folder_path: str, output_file: str, fps=30, compress=True):
             writer.append_data(image)
 
     if compress:
-        pass #optimize(output_file)
+        pass  # optimize(output_file)
 
 
 

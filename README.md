@@ -3,6 +3,7 @@ A Mandelbrot and Buddhabrot viewer with GPU acceleration using NVIDIA's CUDA too
 
 # Showcase
 
+<img src="images/showcase/GUI.png" height="500">
 <img src="images/showcase/cave.png" height="500">
 <img src="images/showcase/throne.png" height="500">
 
@@ -29,12 +30,12 @@ git clone https://github.com/Maelstrom6/mandelpy
   
 - imageio
 
-  To create GIFs.
+  To create GIFs if wanted
   
 - Numba
 
   Requires the Python 64bit interpreter. Chances are, if you managed to install TensorFlow for
-  GPU, you would simply be able to type `$ pip install numba` into the terminal with no problems
+  GPU, you would simply be able to install it with no problems
    and no extra steps. 
   Otherwise, according to
   [their documentation](https://numba.pydata.org/numba-doc/latest/cuda/overview.html#requirements), 
@@ -48,10 +49,17 @@ git clone https://github.com/Maelstrom6/mandelpy
 # Usage
 
 Please see [program_examples](program_examples) and [the showcase](images/showcase) for examples
- on how to use the library. 
+ on how to use the core package. 
+ 
+Please run [main.py](gui/main.py) in the gui folder in order to use the GUI.
 
 # Goals
+ - Add new color schemes.
 
-One major goal is to be able to setup a GUI for the app where there are settings to create images
- but also to edit them in the same way that photoshop would do.
+ - Add tooltip text to all settings on the GUI.
 
+ - Set up 'undo' and 'redo' functionality in the GUI.
+ 
+ - Decide how the GUI should look on startup and after pressing 'New'.
+
+ - Find a way to evaluate string input as functions without the `eval` method.

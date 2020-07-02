@@ -153,7 +153,7 @@
        <item row="9" column="1">
         <widget class="QLineEdit" name="z0LineEdit">
          <property name="text">
-          <string>0, 0</string>
+          <string>0</string>
          </property>
         </widget>
        </item>
@@ -257,14 +257,14 @@
        <item row="17" column="1">
         <widget class="QLineEdit" name="computeSizeLineEdit">
          <property name="text">
-          <string>500, 500</string>
+          <string>(500, 500)</string>
          </property>
         </widget>
        </item>
        <item row="2" column="1">
         <widget class="QLineEdit" name="aspectRatioLineEdit">
          <property name="text">
-          <string>1.0</string>
+          <string>1</string>
          </property>
         </widget>
        </item>

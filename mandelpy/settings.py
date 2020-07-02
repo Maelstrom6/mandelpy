@@ -117,7 +117,6 @@ class Settings:
         elif isinstance(fn, str):
             self.fn_str = fn
             fn = validate_function(fn, ["z", "c"])
-            print(fn)
             self.__fn = cuda.jit(device=True)(fn)
         elif isinstance(fn, types.FunctionType) \
                 or isinstance(fn, types.LambdaType):

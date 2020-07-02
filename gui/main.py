@@ -9,10 +9,6 @@ from gui.generated_ui import Ui_MainWindow
 from ast import literal_eval
 
 
-# TODO: presets
-# TODO: undo
-# TODO: import/export
-
 class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
 
     def __init__(self):
@@ -21,6 +17,7 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.img = Image.open("../images/showcase/cave.png")
         self.update_image()
         self.connect_buttons()
+        self.connect_actions()
         self.typeComboBox.addItems(["mand", "buddha", "julia", "julia_buddha", "orbit"])
         self.colorSchemeComboBox.addItems(["0", "1", "2", "3", "4", "5"])
         self.orbitTypeComboBox.addItems(["0", "1", "2", "3", "4"])
@@ -40,7 +37,13 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
             "mirror_y": self.mirrorYAxisCheckBox,
             "color_scheme": self.colorSchemeComboBox,
             "orbit_id": self.orbitTypeComboBox,
-            "block_size": self.computeSizeLineEdit
+            "block_size": self.computeSizeLineEdit,
+            "remove_h": self.removeCentreHorizontalCheckBox,
+            "remove_v": self.removeCentreVerticalCheckBox,
+            "hue": self.hueSlider,
+            "saturation": self.saturationSlider,
+            "brightness": self.brightnessSlider,
+            "quality": self.qualitySlider
         }
 
     def connect_buttons(self):
@@ -48,6 +51,14 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.saveButton.clicked.connect(self.save)
         self.resetHSBButton.clicked.connect(self.reset_hsb)
         self.loadPresetButton.clicked.connect(self.load_preset)
+
+    def connect_actions(self):
+        self.actionNew.triggered.connect(self.new)
+        self.actionOpen.triggered.connect(self.eemport)
+        self.actionImport.triggered.connect(self.eemport)
+        self.actionExport.triggered.connect(self.export)
+        self.actionSave.triggered.connect(self.save)
+        self.actionSave_As.triggered.connect(self.save)
 
     def preview(self):
         self.clear_error_messages()
@@ -99,13 +110,16 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.label.adjustSize()
 
     def get_settings(self):
-        d = self.get_dict()
+        d = self.get_dict(settings_only=True)
         if d is None:
             return None
+        d["fn"] = d.pop("fn_str")
+        d["transform"] = d.pop("transform_str")
+        d["inv_transform"] = d.pop("inv_transform_str")
         settings = Settings(**d)
         return settings
 
-    def get_dict(self):
+    def get_dict(self, settings_only=False):
         d = dict()
         x = self.validate(self.label_2, validate_float, self.realFocusLineEdit.text())
         y = self.validate(self.label_3, validate_float, self.imaginaryFocusLineEdit.text())
@@ -133,11 +147,17 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
                                        positive=True)
         d["tipe"] = self.typeComboBox.currentText()
         d["z0"] = self.validate(self.label_8, validate_complex, self.z0LineEdit.text())
-        d["fn"] = self.validate(self.label_9, validate_function, self.fnLineEdit.text(), ["z", "c"])
-        d["transform"] = self.validate(self.label_10, validate_function,
-                                       self.transformLineEdit.text(), ["z"])
-        d["inv_transform"] = self.validate(self.label_11, validate_function,
-                                           self.inverseTransformLineEdit.text(), ["z"])
+
+        d["fn_str"] = self.validate(self.label_9, validate_function,
+                                    self.fnLineEdit.text(), ["z", "c"])
+        d["fn_str"] = self.fnLineEdit.text()
+        d["transform_str"] = self.validate(self.label_10, validate_function,
+                                           self.transformLineEdit.text(), ["z"])
+        d["transform_str"] = self.transformLineEdit.text()
+        d["inv_transform_str"] = self.validate(self.label_11, validate_function,
+                                               self.inverseTransformLineEdit.text(), ["z"])
+        d["inv_transform_str"] = self.inverseTransformLineEdit.text()
+
         d["mirror_x"] = self.mirrorXAxisCheckBox.isChecked()
         d["mirror_y"] = self.mirrorYAxisCheckBox.isChecked()
 
@@ -146,6 +166,15 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
 
         d["block_size"] = self.validate(self.label_14, validate_block_size,
                                         self.computeSizeLineEdit.text())
+
+        if not settings_only:
+            d["remove_h"] = self.removeCentreHorizontalCheckBox.isChecked()
+            d["remove_v"] = self.removeCentreVerticalCheckBox.isChecked()
+            d["hue"] = self.hueSlider.value()
+            d["saturation"] = self.saturationSlider.value()
+            d["brightness"] = self.brightnessSlider.value()
+            d["quality"] = self.qualitySlider.value()
+
         for k, v in d.items():
             if v is None:
                 return None
@@ -200,10 +229,10 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         right = d.pop("right")
         top = d.pop("top")
         bottom = d.pop("bottom")
-        scale = (right - left)/2
-        ratio = scale/((top - bottom)/2)
+        scale = (right - left) / 2
+        ratio = scale / ((top - bottom) / 2)
         x = left + scale
-        y = bottom + scale/ratio
+        y = bottom + scale / ratio
         self.realFocusLineEdit.setText(str(x))
         self.imaginaryFocusLineEdit.setText(str(y))
         self.scaleLineEdit.setText(str(scale))
@@ -218,30 +247,38 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
                 item.setCurrentIndex(index)
             elif isinstance(item, QtWidgets.QCheckBox):
                 item.setChecked(v)
+            elif isinstance(item, QtWidgets.QSlider):
+                item.setValue(v)
 
         self.mainTabWidget.setCurrentIndex(0)
 
     def export(self):
         d = self.get_dict()
-        default = QUrl(f"file:project.json")
+        default = QUrl(f"file:project.txt")
         file_name = QFileDialog.getSaveFileUrl(self.centralwidget,
-                                               caption="Save image settings as JSON.",
-                                               filter="JSON file (*.json)",
+                                               caption="Save image settings as text.",
+                                               filter="Text file (*.txt)",
                                                directory=default,
-                                               supportedSchemes=["json"])
+                                               supportedSchemes=["txt"])
         file_name = file_name[0].fileName()
-        with open(file_name, "w") as f:
-            f.write(str(d))
+        if file_name != "":
+            with open(file_name, "w") as f:
+                f.write(str(d))
 
     def eemport(self):
         file_name = QFileDialog.getOpenFileUrl(self.centralwidget,
-                                               caption="Open image settings as JSON.",
-                                               filter="JSON file (*.json)",
-                                               supportedSchemes=["json"])
+                                               caption="Open image settings as text.",
+                                               filter="Text file (*.txt)",
+                                               supportedSchemes=["txt"])
         file_name = file_name[0].fileName()
-        with open(file_name, "r") as f:
-            d = literal_eval(f.read())
-        self.load_dict(d)
+        if file_name != "":
+            with open(file_name, "r") as f:
+                d = literal_eval(f.read())
+            self.load_dict(d)
+
+    def new(self):
+        s = Settings()
+        self.load_dict(s.to_dict())
 
     @staticmethod
     def validate(error_lbl, validator, *args, **kwargs):
