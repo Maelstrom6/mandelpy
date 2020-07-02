@@ -57,7 +57,8 @@ def create_array(settings: Settings, verbose=False, progress_bar=None) -> np.nda
                              settings.mirror_x, settings.mirror_y,
                              settings.block_size)
     for i, block in enumerate(blocks):
-        progress_bar.setValue(int(90*(i+1)/len(blocks)))
+        if progress_bar is not None:
+            progress_bar.setValue(int(90*(i+1)/len(blocks)))
         if verbose:
             print(f"Creating block {i + 1} of {len(blocks)}:", block)
 
@@ -90,7 +91,8 @@ def create_image(settings: Settings, verbose: typing.Union[int, bool] = False,
         If the dependencies have not been properly installed, it will throw some Runtime errors.
 
     """
-    progress_bar.setValue(0)
+    if progress_bar is not None:
+        progress_bar.setValue(0)
     start_time = time.time()
     output = create_array(settings, verbose, progress_bar)
     end_time = time.time()
@@ -99,8 +101,10 @@ def create_image(settings: Settings, verbose: typing.Union[int, bool] = False,
         print("Time taken:", end_time - start_time)
 
     output = color(output, settings.tipe, settings.color_scheme, settings.max_iter)
-    progress_bar.setValue(95)
+    if progress_bar is not None:
+        progress_bar.setValue(95)
 
     output = output.astype(np.uint8).transpose((1, 0, 2))
-    progress_bar.setValue(100)
+    if progress_bar is not None:
+        progress_bar.setValue(100)
     return Image.fromarray(output)

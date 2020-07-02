@@ -1,16 +1,17 @@
 from numba import cuda
 from numba.cuda.compiler import AutoJitCUDAKernel
 import typing
-from cmath import *  # used for presets
+# from cmath import *  # used for presets
 import types
+from mandelpy.validators import validate_function
 
 
 class Settings:
     def __init__(self, width=1000, height=1000, left: float = -2, right: float = 2, top: float = 2,
                  bottom: float = -2, max_iter=200, threshold=2, tipe="mand", z0=complex(0, 0),
-                 fn: typing.Union[typing.Callable, AutoJitCUDAKernel] = None,
-                 transform: typing.Union[typing.Callable, AutoJitCUDAKernel] = None,
-                 inv_transform: typing.Union[typing.Callable, AutoJitCUDAKernel] = None,
+                 fn: typing.Union[typing.Callable, AutoJitCUDAKernel, str] = None,
+                 transform: typing.Union[typing.Callable, AutoJitCUDAKernel, str] = None,
+                 inv_transform: typing.Union[typing.Callable, AutoJitCUDAKernel, str] = None,
                  mirror_x: bool = False, mirror_y: bool = False,
                  color_scheme=1, orbit_id=1, block_size=(500, 500)):
         """The main settings object to create mandelbrot images
@@ -104,12 +105,20 @@ class Settings:
 
     @fn.setter
     def fn(self, fn):
+        self.fn_str = None
+
         if fn is None:
             @cuda.jit(device=True)
             def fn(z, c):
                 return z ** 2 + c
 
             self.__fn = fn
+            self.fn_str = "z ** 2 + c"
+        elif isinstance(fn, str):
+            self.fn_str = fn
+            fn = validate_function(fn, ["z", "c"])
+            print(fn)
+            self.__fn = cuda.jit(device=True)(fn)
         elif isinstance(fn, types.FunctionType) \
                 or isinstance(fn, types.LambdaType):
             # turn the default function into a cuda function.
@@ -125,12 +134,19 @@ class Settings:
 
     @transform.setter
     def transform(self, transform: typing.Union[typing.Callable, AutoJitCUDAKernel]):
+        self.transform_str = None
+
         if transform is None:
             @cuda.jit(device=True)
             def transform(z):
                 return z
 
             self.__transform = transform
+            self.transform_str = "z"
+        elif isinstance(transform, str):
+            self.transform_str = transform
+            transform = validate_function(transform, ["z"])
+            self.__transform = cuda.jit(device=True)(transform)
         elif isinstance(transform, types.FunctionType) \
                 or isinstance(transform, types.LambdaType):
             # turn the default function into a cuda function.
@@ -146,12 +162,19 @@ class Settings:
 
     @inv_transform.setter
     def inv_transform(self, inv_transform: typing.Union[typing.Callable, AutoJitCUDAKernel]):
+        self.inv_transform_str = None
+
         if inv_transform is None:
             @cuda.jit(device=True)
             def inv_transform(z):
                 return z
 
             self.__inv_transform = inv_transform
+            self.inv_transform_str = "z"
+        elif isinstance(inv_transform, str):
+            self.inv_transform_str = inv_transform
+            inv_transform = validate_function(inv_transform, ["z"])
+            self.__inv_transform = cuda.jit(device=True)(inv_transform)
         elif isinstance(inv_transform, types.FunctionType) \
                 or isinstance(inv_transform, types.LambdaType):
             # turn the default function into a cuda function.
@@ -199,60 +222,88 @@ class Settings:
         self.top: float = centre_imag + zoom
         self.bottom: float = centre_imag - zoom
 
+    def to_dict(self):
+        """Used for exporting a Settings object to a dictionary.
 
-@cuda.jit(device=True)
-def power(z, n):
-    """Finds z^n using CUDA-supported functions"""
-    return exp(n * log(z))
+        Notes:
+            If this settings object's functions were not default and were not inputted as strings,
+            it will not preserve them.
+
+            This is mostly for the GUI interface and should not be used for API purposes.
+        """
+        d = self.__dict__.copy()
+        del d["_Settings__fn"]
+        del d["_Settings__transform"]
+        del d["_Settings__inv_transform"]
+
+        return d
 
 
 presets = {
     "the_box": Settings(tipe="buddha", max_iter=500,
                         left=-4, right=4, width=2000,
-                        transform=lambda z: tan(asin(z)) ** 2,
-                        inv_transform=lambda z: sin(atan(sqrt(z))),
+                        # transform=lambda z: tan(asin(z)) ** 2,
+                        # inv_transform=lambda z: sin(atan(sqrt(z))),
+                        transform="tan(asin(z)) ** 2",
+                        inv_transform="sin(atan(sqrt(z)))",
                         mirror_x=True, mirror_y=True),
 
     "throne": Settings(tipe="buddha", max_iter=500,
                        left=-2.2, right=2.2, top=2.4, bottom=-2.4,
-                       transform=lambda z: tan(acos(z)) ** 2,
-                       inv_transform=lambda z: cos(atan(sqrt(z))),
+                       # transform=lambda z: tan(acos(z)) ** 2,
+                       # inv_transform=lambda z: cos(atan(sqrt(z))),
+                       transform="tan(acos(z)) ** 2",
+                       inv_transform="cos(atan(sqrt(z)))",
                        mirror_x=True, mirror_y=True),
 
     "cave": Settings(tipe="buddha", max_iter=500,
                      left=-4, right=4, top=4, bottom=-4,
-                     transform=lambda z: 1 / z,
-                     inv_transform=lambda z: 1 / z,
+                     # transform=lambda z: 1 / z,
+                     # inv_transform=lambda z: 1 / z,
+                     transform="1 / z",
+                     inv_transform="1 / z",
                      mirror_x=True),
 
     "tree": Settings(left=-4, right=4, top=4, bottom=-4,
-                     transform=lambda z: atan(sin(exp(z))),
-                     inv_transform=lambda z: log(asin(tan(z))),
+                     # transform=lambda z: atan(sin(exp(z))),
+                     # inv_transform=lambda z: log(asin(tan(z))),
+                     transform="atan(sin(exp(z)))",
+                     inv_transform="log(asin(tan(z)))",
                      mirror_x=True),
 
     "spider": Settings(left=-16, right=16, top=16, bottom=-16,
-                       transform=lambda z: log(power(z, 1.0 / 6.0)),
-                       inv_transform=lambda z: power(exp(z), 6.0),
+                       # transform=lambda z: log(power(z, 1.0 / 6.0)),
+                       # inv_transform=lambda z: power(exp(z), 6.0),
+                       transform="log(power(z, 1.0 / 6.0))",
+                       inv_transform="power(exp(z), 6.0)",
                        mirror_x=True),
 
     "bedbug": Settings(max_iter=500, tipe="buddha",
                        left=-4, right=4, top=4, bottom=-4,
-                       transform=lambda z: tan(acos(atan(z))),
-                       inv_transform=lambda z: tan(cos(atan(z))),
+                       # transform=lambda z: tan(acos(atan(z))),
+                       # inv_transform=lambda z: tan(cos(atan(z))),
+                       transform="tan(acos(atan(z)))",
+                       inv_transform="tan(cos(atan(z)))",
                        mirror_x=True),
 
     "snow_globe": Settings(max_iter=500, tipe="buddha",
                            left=-4, right=4, top=4, bottom=-4,
-                           transform=lambda z: power(exp(asin(z)), 2),
-                           inv_transform=lambda z: sin(log(sqrt(z))),
+                           # transform=lambda z: power(exp(asin(z)), 2),
+                           # inv_transform=lambda z: sin(log(sqrt(z))),
+                           transform="power(exp(asin(z)), 2)",
+                           inv_transform="sin(log(sqrt(z)))",
                            mirror_x=True),
 
     "gates": Settings(max_iter=500, tipe="buddha",
                       left=-4, right=4, top=4, bottom=-4,
-                      transform=lambda z: 1 / sin(cos(z)),
-                      inv_transform=lambda z: acos(asin(1 / z)),
+                      # transform=lambda z: 1 / sin(cos(z)),
+                      # inv_transform=lambda z: acos(asin(1 / z)),
+                      transform="1 / sin(cos(z))",
+                      inv_transform="acos(asin(1 / z))",
                       mirror_x=True),
 
     "buddha3": Settings(max_iter=500, tipe="buddha",
-                        fn=lambda zn, c: power(zn, 3) + c)
+                        # fn=lambda zn, c: power(zn, 3) + c
+                        fn="power(z, 3) + c"
+                        )
 }

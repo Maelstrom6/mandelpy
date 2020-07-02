@@ -12,5 +12,6 @@ Examples:
 
 """
 
-from .settings import Settings, presets, power
+from .settings import Settings, presets
+from .validators import power
 from .generator import create_image

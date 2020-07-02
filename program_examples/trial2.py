@@ -1,7 +1,7 @@
-from mandelpy import Settings, create_image
+from mandelpy import Settings, create_image, presets, power
+from PIL import Image
 
-s = Settings()
-img = create_image(s)
-img = img.thumbnail((800, 800))
-print(img)
+s = presets["buddha3"]
+s.fn = lambda z, c: power(z, 3)+c
+create_image(s)
 

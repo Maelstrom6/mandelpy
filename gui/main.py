@@ -1,12 +1,17 @@
-from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication
-from mandelpy import Settings, create_image
-from gui.validators import *
-from PIL import Image
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtCore import QUrl
+from PyQt5.QtWidgets import QApplication, QFileDialog
+from mandelpy import Settings, create_image, presets
+from mandelpy.validators import *
+from PIL import Image, ImageEnhance
 import sys
-import time
 from gui.generated_ui import Ui_MainWindow
+from ast import literal_eval
 
+
+# TODO: presets
+# TODO: undo
+# TODO: import/export
 
 class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
 
@@ -19,37 +24,77 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.typeComboBox.addItems(["mand", "buddha", "julia", "julia_buddha", "orbit"])
         self.colorSchemeComboBox.addItems(["0", "1", "2", "3", "4", "5"])
         self.orbitTypeComboBox.addItems(["0", "1", "2", "3", "4"])
+        self.presetNameComboBox.addItems(presets.keys())
 
+        self.settings_mapper = {
+            "width": self.computedWidthLineEdit,
+            "height": self.computedHeightLineEdit,
+            "max_iter": self.maxIterationsLineEdit,
+            "threshold": self.thresholdLineEdit,
+            "tipe": self.typeComboBox,
+            "z0": self.z0LineEdit,
+            "fn_str": self.fnLineEdit,
+            "transform_str": self.transformLineEdit,
+            "inv_transform_str": self.inverseTransformLineEdit,
+            "mirror_x": self.mirrorXAxisCheckBox,
+            "mirror_y": self.mirrorYAxisCheckBox,
+            "color_scheme": self.colorSchemeComboBox,
+            "orbit_id": self.orbitTypeComboBox,
+            "block_size": self.computeSizeLineEdit
+        }
 
     def connect_buttons(self):
         self.refreshButton.clicked.connect(self.preview)
         self.saveButton.clicked.connect(self.save)
+        self.resetHSBButton.clicked.connect(self.reset_hsb)
+        self.loadPresetButton.clicked.connect(self.load_preset)
 
     def preview(self):
         self.clear_error_messages()
         QApplication.processEvents()
         settings = self.get_settings()
-        if settings is not None:
-            self.img = create_image(settings, progress_bar=self.previewProgressBar)
-            self.img.thumbnail((800, 800))
-            self.update_image()
-        # i = 0
-        # while self.previewProgressBar.value() < 100:
-        #     self.previewProgressBar.setValue(i)
-        #     i += 10
-        #     time.sleep(1)
+        if settings is None:
+            return
+
+        # perform creation
+        self.img = create_image(settings, progress_bar=self.previewProgressBar)
+
+        # perform adjustments
+        if self.removeCentreHorizontalCheckBox.isChecked():
+            width, height = self.img.size
+            top = self.img.crop((0, 0, width, height // 2 - 1))
+            bottom = self.img.crop((0, height // 2 + 1, width, height))
+            self.img = Image.new("RGB", (width, height - 2))
+            self.img.paste(top, (0, 0))
+            self.img.paste(bottom, (0, height // 2 - 1))
+
+        if self.removeCentreVerticalCheckBox.isChecked():
+            width, height = self.img.size
+            left = self.img.crop((0, 0, width // 2 - 1, height))
+            right = self.img.crop((width // 2 + 1, 0, width, height))
+            self.img = Image.new("RGB", (width - 2, height))
+            self.img.paste(left, (0, 0))
+            self.img.paste(right, (width // 2 - 1, 0))
+
+        en = ImageEnhance.Color(self.img)
+        self.img = en.enhance(self.hueSlider.value() / 100)
+
+        en = ImageEnhance.Contrast(self.img)
+        self.img = en.enhance(self.saturationSlider.value() / 100)
+
+        en = ImageEnhance.Brightness(self.img)
+        self.img = en.enhance(self.brightnessSlider.value() / 100)
+
+        self.update_image()
 
     def update_image(self):
-        # print("A")
-        # img = ImageQt.ImageQt(self.img)
-        # print("B")
-        # img = QtGui.QPixmap.fromImage(img)
-        # print("C")
-        # self.label.setPixmap(img)
-        bytes_image = self.img.tobytes("raw", "RGB")
-        image = QtGui.QImage(bytes_image, self.img.size[0], self.img.size[1],
-                             QtGui.QImage.Format_RGB888)
-        pix_map = QtGui.QPixmap.fromImage(image)
+        img = self.img.copy()
+        img.thumbnail((800, 800))
+        # bytes_image = self.img.tobytes("raw", "RGB")
+        # image = QtGui.QImage(bytes_image, self.img.size[0], self.img.size[1],
+        #                      QtGui.QImage.Format_RGB888)
+        # pix_map = QtGui.QPixmap.fromImage(image)
+        pix_map = img.toqpixmap()
         self.label.setPixmap(pix_map)
         self.label.adjustSize()
 
@@ -71,11 +116,16 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
 
         d["left"] = x - scale
         d["right"] = x + scale
-        d["top"] = y + scale/ratio
-        d["bottom"] = y - scale/ratio
+        d["top"] = y + scale / ratio
+        d["bottom"] = y - scale / ratio
 
-        d["width"] = 1000
-        d["height"] = int(1000/ratio)
+        width = self.validate(self.label_16, validate_int, self.computedWidthLineEdit.text(),
+                              positive=True)
+        height = self.validate(self.label_17, validate_int, self.computedHeightLineEdit.text(),
+                               positive=True)
+
+        d["width"] = width
+        d["height"] = height
 
         d["max_iter"] = self.validate(self.label_5, validate_int, self.maxIterationsLineEdit.text(),
                                       positive=True)
@@ -117,7 +167,81 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.label_14.setText("")
 
     def save(self):
-        pass
+        width = self.validate(self.label_18, validate_int, self.widthLineEdit.text(),
+                              positive=True)
+        height = self.validate(self.label_19, validate_int, self.heightLineEdit.text(),
+                               positive=True)
+
+        default = QUrl(f"file:{self.fileNameLineEdit.text()}")
+        file_name = QFileDialog.getSaveFileUrl(self.centralwidget,
+                                               caption="Save image as PNG or JPEG.",
+                                               filter="PNG file (*.png);;JPEG file (*.jpg)",
+                                               directory=default,
+                                               supportedSchemes=["png", "jpg"])
+        file_name = file_name[0].fileName()
+
+        if file_name != "":
+            img = self.img.copy()
+            img.thumbnail((width, height))
+            self.img.save(file_name, quality=self.qualitySlider.value())
+
+    def reset_hsb(self):
+        self.hueSlider.setValue(100)
+        self.saturationSlider.setValue(100)
+        self.brightnessSlider.setValue(100)
+
+    def load_preset(self):
+        preset = presets[self.presetNameComboBox.currentText()]
+        json_preset = preset.to_dict()
+        self.load_dict(json_preset)
+
+    def load_dict(self, d: dict):
+        left = d.pop("left")
+        right = d.pop("right")
+        top = d.pop("top")
+        bottom = d.pop("bottom")
+        scale = (right - left)/2
+        ratio = scale/((top - bottom)/2)
+        x = left + scale
+        y = bottom + scale/ratio
+        self.realFocusLineEdit.setText(str(x))
+        self.imaginaryFocusLineEdit.setText(str(y))
+        self.scaleLineEdit.setText(str(scale))
+        self.aspectRatioLineEdit.setText(str(ratio))
+
+        for k, v in d.items():
+            item = self.settings_mapper[k]
+            if isinstance(item, QtWidgets.QLineEdit):
+                item.setText(str(v))
+            elif isinstance(item, QtWidgets.QComboBox):
+                index = item.findText(str(v), QtCore.Qt.MatchFixedString)
+                item.setCurrentIndex(index)
+            elif isinstance(item, QtWidgets.QCheckBox):
+                item.setChecked(v)
+
+        self.mainTabWidget.setCurrentIndex(0)
+
+    def export(self):
+        d = self.get_dict()
+        default = QUrl(f"file:project.json")
+        file_name = QFileDialog.getSaveFileUrl(self.centralwidget,
+                                               caption="Save image settings as JSON.",
+                                               filter="JSON file (*.json)",
+                                               directory=default,
+                                               supportedSchemes=["json"])
+        file_name = file_name[0].fileName()
+        with open(file_name, "w") as f:
+            f.write(str(d))
+
+    def eemport(self):
+        file_name = QFileDialog.getOpenFileUrl(self.centralwidget,
+                                               caption="Open image settings as JSON.",
+                                               filter="JSON file (*.json)",
+                                               supportedSchemes=["json"])
+        file_name = file_name[0].fileName()
+        with open(file_name, "r") as f:
+            d = literal_eval(f.read())
+        self.load_dict(d)
 
     @staticmethod
     def validate(error_lbl, validator, *args, **kwargs):

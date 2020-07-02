@@ -39,7 +39,7 @@
       <x>810</x>
       <y>0</y>
       <width>431</width>
-      <height>531</height>
+      <height>571</height>
      </rect>
     </property>
     <property name="currentIndex">
@@ -55,7 +55,7 @@
         <x>30</x>
         <y>10</y>
         <width>190</width>
-        <height>501</height>
+        <height>531</height>
        </rect>
       </property>
       <layout class="QFormLayout" name="formLayout">
@@ -101,160 +101,160 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="0">
+       <item row="6" column="0">
         <widget class="QLabel" name="maxIterationsLabel">
          <property name="text">
           <string>Max iterations</string>
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
+       <item row="6" column="1">
         <widget class="QLineEdit" name="maxIterationsLineEdit">
          <property name="text">
           <string>100</string>
          </property>
         </widget>
        </item>
-       <item row="5" column="0">
+       <item row="7" column="0">
         <widget class="QLabel" name="thresholdLabel">
          <property name="text">
           <string>Threshold</string>
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
+       <item row="7" column="1">
         <widget class="QLineEdit" name="thresholdLineEdit">
          <property name="text">
           <string>2</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="0">
+       <item row="8" column="0">
         <widget class="QLabel" name="typeLabel">
          <property name="text">
           <string>Type</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="1">
+       <item row="8" column="1">
         <widget class="QComboBox" name="typeComboBox">
          <property name="placeholderText">
           <string>mand</string>
          </property>
         </widget>
        </item>
-       <item row="7" column="0">
+       <item row="9" column="0">
         <widget class="QLabel" name="z0Label">
          <property name="text">
           <string>Z0</string>
          </property>
         </widget>
        </item>
-       <item row="7" column="1">
+       <item row="9" column="1">
         <widget class="QLineEdit" name="z0LineEdit">
          <property name="text">
           <string>0, 0</string>
          </property>
         </widget>
        </item>
-       <item row="8" column="0">
+       <item row="10" column="0">
         <widget class="QLabel" name="fnLabel">
          <property name="text">
           <string>fn</string>
          </property>
         </widget>
        </item>
-       <item row="8" column="1">
+       <item row="10" column="1">
         <widget class="QLineEdit" name="fnLineEdit">
          <property name="text">
           <string>z**2 + c</string>
          </property>
         </widget>
        </item>
-       <item row="9" column="0">
+       <item row="11" column="0">
         <widget class="QLabel" name="transformLabel">
          <property name="text">
           <string>Transform</string>
          </property>
         </widget>
        </item>
-       <item row="9" column="1">
+       <item row="11" column="1">
         <widget class="QLineEdit" name="transformLineEdit">
          <property name="text">
           <string>z</string>
          </property>
         </widget>
        </item>
-       <item row="10" column="0">
+       <item row="12" column="0">
         <widget class="QLabel" name="inverseTransformLabel">
          <property name="text">
           <string>Inverse transform</string>
          </property>
         </widget>
        </item>
-       <item row="10" column="1">
+       <item row="12" column="1">
         <widget class="QLineEdit" name="inverseTransformLineEdit">
          <property name="text">
           <string>z</string>
          </property>
         </widget>
        </item>
-       <item row="11" column="0">
+       <item row="13" column="0">
         <widget class="QLabel" name="mirrorXAxisLabel">
          <property name="text">
           <string>Mirror x-axis</string>
          </property>
         </widget>
        </item>
-       <item row="11" column="1">
+       <item row="13" column="1">
         <widget class="QCheckBox" name="mirrorXAxisCheckBox"/>
        </item>
-       <item row="12" column="0">
+       <item row="14" column="0">
         <widget class="QLabel" name="mirrorYAxisLabel">
          <property name="text">
           <string>Mirror y-axis</string>
          </property>
         </widget>
        </item>
-       <item row="12" column="1">
+       <item row="14" column="1">
         <widget class="QCheckBox" name="mirrorYAxisCheckBox"/>
        </item>
-       <item row="13" column="0">
+       <item row="15" column="0">
         <widget class="QLabel" name="colorSchemeLabel">
          <property name="text">
           <string>Color scheme</string>
          </property>
         </widget>
        </item>
-       <item row="13" column="1">
+       <item row="15" column="1">
         <widget class="QComboBox" name="colorSchemeComboBox">
          <property name="placeholderText">
           <string>0</string>
          </property>
         </widget>
        </item>
-       <item row="14" column="0">
+       <item row="16" column="0">
         <widget class="QLabel" name="orbitTypeLabel">
          <property name="text">
           <string>Orbit type</string>
          </property>
         </widget>
        </item>
-       <item row="14" column="1">
+       <item row="16" column="1">
         <widget class="QComboBox" name="orbitTypeComboBox">
          <property name="placeholderText">
           <string>0</string>
          </property>
         </widget>
        </item>
-       <item row="15" column="0">
+       <item row="17" column="0">
         <widget class="QLabel" name="computeSizeLabel">
          <property name="text">
           <string>Compute size</string>
          </property>
         </widget>
        </item>
-       <item row="15" column="1">
+       <item row="17" column="1">
         <widget class="QLineEdit" name="computeSizeLineEdit">
          <property name="text">
           <string>500, 500</string>
@@ -275,6 +275,34 @@
          </property>
         </widget>
        </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="computedWidthLabel">
+         <property name="text">
+          <string>Computed width</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLineEdit" name="computedWidthLineEdit">
+         <property name="text">
+          <string>1000</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="computedHeightLabel">
+         <property name="text">
+          <string>Computed height</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="computedHeightLineEdit">
+         <property name="text">
+          <string>1000</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="verticalLayoutWidget">
@@ -283,7 +311,7 @@
         <x>220</x>
         <y>10</y>
         <width>181</width>
-        <height>331</height>
+        <height>401</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
@@ -310,6 +338,20 @@
        </item>
        <item>
         <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_16">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_17">
          <property name="text">
           <string/>
          </property>
@@ -370,7 +412,7 @@
       <property name="geometry">
        <rect>
         <x>220</x>
-        <y>390</y>
+        <y>450</y>
         <width>181</width>
         <height>91</height>
        </rect>
@@ -404,6 +446,198 @@
      <attribute name="title">
       <string>Adjust</string>
      </attribute>
+     <widget class="QWidget" name="formLayoutWidget_3">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>10</y>
+        <width>221</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <layout class="QFormLayout" name="formLayout_3">
+       <item row="0" column="0">
+        <widget class="QLabel" name="removeCentreHorizontalLabel">
+         <property name="text">
+          <string>Remove centre horizontal</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QCheckBox" name="removeCentreHorizontalCheckBox"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="removeCentreVerticalLabel">
+         <property name="text">
+          <string>Remove centre vertical</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QCheckBox" name="removeCentreVerticalCheckBox"/>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="gridLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>100</y>
+        <width>221</width>
+        <height>103</height>
+       </rect>
+      </property>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="2" column="1">
+        <widget class="QSlider" name="brightnessSlider">
+         <property name="maximum">
+          <number>200</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="tickPosition">
+          <enum>QSlider::NoTicks</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="saturationLabel">
+         <property name="text">
+          <string>Saturation</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QSlider" name="saturationSlider">
+         <property name="maximum">
+          <number>200</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QSlider" name="hueSlider">
+         <property name="maximum">
+          <number>200</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="hueLabel">
+         <property name="text">
+          <string>Hue</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="brightnessLabel">
+         <property name="text">
+          <string>Brightness</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QPushButton" name="resetHSBButton">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>210</y>
+        <width>93</width>
+        <height>28</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Reset</string>
+      </property>
+     </widget>
+     <widget class="QWidget" name="formLayoutWidget_4">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>260</y>
+        <width>221</width>
+        <height>80</height>
+       </rect>
+      </property>
+      <layout class="QFormLayout" name="formLayout_4">
+       <item row="0" column="1">
+        <widget class="QSlider" name="qualitySlider">
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="qualityLabel">
+         <property name="text">
+          <string>Quality</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_3">
+     <attribute name="title">
+      <string>Presets</string>
+     </attribute>
+     <widget class="QWidget" name="formLayoutWidget_5">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>70</y>
+        <width>201</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <layout class="QFormLayout" name="formLayout_5">
+       <item row="0" column="0">
+        <widget class="QLabel" name="presetNameLabel">
+         <property name="text">
+          <string>Preset name</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QComboBox" name="presetNameComboBox"/>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QPushButton" name="loadPresetButton">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>120</y>
+        <width>91</width>
+        <height>28</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Load settings</string>
+      </property>
+     </widget>
     </widget>
    </widget>
    <widget class="QPushButton" name="refreshButton">
@@ -429,7 +663,7 @@
      </rect>
     </property>
     <property name="value">
-     <number>24</number>
+     <number>100</number>
     </property>
    </widget>
    <widget class="QWidget" name="formLayoutWidget_2">
@@ -437,7 +671,7 @@
      <rect>
       <x>840</x>
       <y>630</y>
-      <width>160</width>
+      <width>181</width>
       <height>88</height>
      </rect>
     </property>
@@ -445,7 +679,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="widthLabel">
        <property name="text">
-        <string>Width</string>
+        <string>Saved width</string>
        </property>
       </widget>
      </item>
@@ -457,7 +691,7 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QLineEdit" name="hieghtLineEdit">
+      <widget class="QLineEdit" name="heightLineEdit">
        <property name="text">
         <string>1000</string>
        </property>
@@ -466,7 +700,7 @@
      <item row="1" column="0">
       <widget class="QLabel" name="hieghtLabel">
        <property name="text">
-        <string>Height</string>
+        <string>Saved Height</string>
        </property>
       </widget>
      </item>
@@ -499,18 +733,38 @@
      <string>Save</string>
     </property>
    </widget>
-   <widget class="QProgressBar" name="finalProgressBar">
+   <widget class="QWidget" name="verticalLayoutWidget_3">
     <property name="geometry">
      <rect>
-      <x>950</x>
-      <y>730</y>
-      <width>118</width>
-      <height>23</height>
+      <x>1020</x>
+      <y>630</y>
+      <width>160</width>
+      <height>91</height>
      </rect>
     </property>
-    <property name="value">
-     <number>24</number>
-    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_3">
+     <item>
+      <widget class="QLabel" name="label_18">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_19">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_20">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -626,6 +880,8 @@
   <tabstop>imaginaryFocusLineEdit</tabstop>
   <tabstop>aspectRatioLineEdit</tabstop>
   <tabstop>scaleLineEdit</tabstop>
+  <tabstop>computedWidthLineEdit</tabstop>
+  <tabstop>computedHeightLineEdit</tabstop>
   <tabstop>maxIterationsLineEdit</tabstop>
   <tabstop>thresholdLineEdit</tabstop>
   <tabstop>typeComboBox</tabstop>
@@ -640,9 +896,14 @@
   <tabstop>computeSizeLineEdit</tabstop>
   <tabstop>refreshButton</tabstop>
   <tabstop>widthLineEdit</tabstop>
-  <tabstop>hieghtLineEdit</tabstop>
+  <tabstop>heightLineEdit</tabstop>
   <tabstop>fileNameLineEdit</tabstop>
   <tabstop>saveButton</tabstop>
+  <tabstop>removeCentreHorizontalCheckBox</tabstop>
+  <tabstop>removeCentreVerticalCheckBox</tabstop>
+  <tabstop>hueSlider</tabstop>
+  <tabstop>saturationSlider</tabstop>
+  <tabstop>brightnessSlider</tabstop>
  </tabstops>
  <resources/>
  <connections/>
