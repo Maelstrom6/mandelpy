@@ -1,9 +1,9 @@
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QUrl
 from PyQt5.QtWidgets import QApplication, QFileDialog
-from mandelpy import Settings, create_image, presets
+from mandelpy import Settings, create_image, presets, post_processing
 from mandelpy.validators import *
-from PIL import Image, ImageEnhance
+from PIL import Image
 import sys
 from gui.generated_ui import Ui_MainWindow
 from ast import literal_eval
@@ -72,29 +72,15 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
 
         # perform adjustments
         if self.removeCentreHorizontalCheckBox.isChecked():
-            width, height = self.img.size
-            top = self.img.crop((0, 0, width, height // 2 - 1))
-            bottom = self.img.crop((0, height // 2 + 1, width, height))
-            self.img = Image.new("RGB", (width, height - 2))
-            self.img.paste(top, (0, 0))
-            self.img.paste(bottom, (0, height // 2 - 1))
+            self.img = post_processing.remove_centre_horizontal_pixels(self.img)
 
         if self.removeCentreVerticalCheckBox.isChecked():
-            width, height = self.img.size
-            left = self.img.crop((0, 0, width // 2 - 1, height))
-            right = self.img.crop((width // 2 + 1, 0, width, height))
-            self.img = Image.new("RGB", (width - 2, height))
-            self.img.paste(left, (0, 0))
-            self.img.paste(right, (width // 2 - 1, 0))
+            self.img = post_processing.remove_centre_vertical_pixels(self.img)
 
-        en = ImageEnhance.Color(self.img)
-        self.img = en.enhance(self.hueSlider.value() / 100)
-
-        en = ImageEnhance.Contrast(self.img)
-        self.img = en.enhance(self.saturationSlider.value() / 100)
-
-        en = ImageEnhance.Brightness(self.img)
-        self.img = en.enhance(self.brightnessSlider.value() / 100)
+        self.img = post_processing.enhance(self.img,
+                                           self.hueSlider.value() / 100,
+                                           self.saturationSlider.value() / 100,
+                                           self.brightnessSlider.value() / 100)
 
         self.update_image()
 

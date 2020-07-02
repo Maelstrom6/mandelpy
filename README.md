@@ -4,8 +4,22 @@ A Mandelbrot and Buddhabrot viewer with GPU acceleration using NVIDIA's CUDA too
 # Showcase
 
 <img src="images/showcase/GUI.png" height="500">
-<img src="images/showcase/cave.png" height="500">
 <img src="images/showcase/throne.png" height="500">
+<img src="images/showcase/cave.png" height="500">
+<img src="images/showcase/the_box.jpg" height="500">
+
+# What makes this different?
+
+There are tonnes of mandelbrot programs, but this is special in 3 ways: 
+ - It is the only one that provides a `transform` setting to everything. This means that every
+  point `z` on the screen goes through a that transform which can completely
+ change the shape of the output into something never seen before.
+ 
+ - There is also zero randomness for all buddhabrots which is rares with these projects. 
+ I like to think that it makes computation faster.
+ 
+ - It is GPU accelerated and is sometimes faster than previous accelerated Java and C++ 
+ applications even though the whole project is written in pure python.
 
 # Installation
 
@@ -63,3 +77,7 @@ Please run [main.py](gui/main.py) in the gui folder in order to use the GUI.
  - Decide how the GUI should look on startup and after pressing 'New'.
 
  - Find a way to evaluate string input as functions without the `eval` method.
+ 
+# Contributing
+
+Contributions are highly appreciated especially bug fixes, new color schemes and presets.

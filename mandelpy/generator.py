@@ -74,7 +74,7 @@ def create_array(settings: Settings, verbose=False, progress_bar=None) -> np.nda
 
 
 def create_image(settings: Settings, verbose: typing.Union[int, bool] = False,
-                 progress_bar=None) -> Image:
+                 progress_bar=None) -> Image.Image:
     """Creates a Pillow image of a fractal using the given settings.
 
     Args:

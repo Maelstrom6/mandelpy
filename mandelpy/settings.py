@@ -303,6 +303,7 @@ presets = {
 
     "buddha3": Settings(max_iter=500, tipe="buddha",
                         # fn=lambda zn, c: power(zn, 3) + c
-                        fn="power(z, 3) + c"
-                        )
+                        fn="power(z, 3) + c",
+                        mirror_x=True,
+                        mirror_y=True)
 }
