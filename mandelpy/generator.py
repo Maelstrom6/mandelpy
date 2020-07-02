@@ -40,7 +40,7 @@ def compile_kernel(settings: Settings):
     return f
 
 
-def create_array(settings: Settings, verbose=False) -> np.ndarray:
+def create_array(settings: Settings, verbose=False, progress_bar=None) -> np.ndarray:
     """Generates the numpy array of visits to particular points. This is done in blocks since the
     kernel does not allow jobs of size (2000, 2000)."""
     # The mandelbrot has a smoothing factor that results in float outputs
@@ -57,6 +57,7 @@ def create_array(settings: Settings, verbose=False) -> np.ndarray:
                              settings.mirror_x, settings.mirror_y,
                              settings.block_size)
     for i, block in enumerate(blocks):
+        progress_bar.setValue(int(90*(i+1)/len(blocks)))
         if verbose:
             print(f"Creating block {i + 1} of {len(blocks)}:", block)
 
@@ -71,7 +72,8 @@ def create_array(settings: Settings, verbose=False) -> np.ndarray:
     return output
 
 
-def create_image(settings: Settings, verbose: typing.Union[int, bool] = False) -> Image:
+def create_image(settings: Settings, verbose: typing.Union[int, bool] = False,
+                 progress_bar=None) -> Image:
     """Creates a Pillow image of a fractal using the given settings.
 
     Args:
@@ -79,6 +81,8 @@ def create_image(settings: Settings, verbose: typing.Union[int, bool] = False) -
         verbose: Whether to print its workings. If it is an `int` then gives different amounts of
             information, with amounts increasing the higher level you go. If it is `True` then
             prints at the most verbose.
+        progress_bar: An object that has a method `setValue(x: int)`  that will be updated in
+            order to keep track of progress.
 
     Returns:The generated Pillow Image
 
@@ -86,14 +90,17 @@ def create_image(settings: Settings, verbose: typing.Union[int, bool] = False) -
         If the dependencies have not been properly installed, it will throw some Runtime errors.
 
     """
+    progress_bar.setValue(0)
     start_time = time.time()
-    output = create_array(settings, verbose)
+    output = create_array(settings, verbose, progress_bar)
     end_time = time.time()
 
     if verbose > 0:
         print("Time taken:", end_time - start_time)
 
     output = color(output, settings.tipe, settings.color_scheme, settings.max_iter)
+    progress_bar.setValue(95)
 
     output = output.astype(np.uint8).transpose((1, 0, 2))
+    progress_bar.setValue(100)
     return Image.fromarray(output)

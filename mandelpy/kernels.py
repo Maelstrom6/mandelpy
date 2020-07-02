@@ -98,9 +98,9 @@ def buddha_factory(width: int, height: int, left: float, right: float, top: floa
                     coord = inv_transform(visited_coords[j])
                     x_pixel, y_pixel = point_to_pixel(coord.real, coord.imag)
                     if (0 < y_pixel < height) and (0 < x_pixel < width):
-                        if (j < 0.01 * max_iter) or (0.2 * max_iter < j < 0.21 * max_iter):
+                        if (j < 10):
                             data[x_pixel, y_pixel, 2] += 1
-                        if j < 0.1 * max_iter:
+                        if j < 100:
                             data[x_pixel, y_pixel, 1] += 1
                         data[x_pixel, y_pixel, 0] += 1
                     j += 1
@@ -235,7 +235,7 @@ def mandelbrot_factory(width: int, height: int, left: float, right: float, top: 
             # cycle detection algorithm
             if i > check_step:
                 if abs(zn - zn_cycle) < epsilon:
-                    return
+                    break
                 if i == check_step * 2:
                     check_step *= 2
                     zn_cycle = zn

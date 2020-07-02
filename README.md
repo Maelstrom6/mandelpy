@@ -41,6 +41,10 @@ git clone https://github.com/Maelstrom6/mandelpy
   one needs the CUDA Toolkit 8.0 or later. Please run the `numba_cuda_test.py` to check if
   everything is working properly which is located in [user_utilities](user_utilities).
 
+- PyQt5
+
+  Required for the user interface. PyQt5-tools is not required.
+
 # Usage
 
 Please see [program_examples](program_examples) and [the showcase](images/showcase) for examples

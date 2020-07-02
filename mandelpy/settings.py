@@ -99,7 +99,7 @@ class Settings:
         self.block_size: typing.Tuple[2] = block_size
 
     @property
-    def fn(self):
+    def fn(self) -> AutoJitCUDAKernel:
         return self.__fn
 
     @fn.setter
