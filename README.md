@@ -78,6 +78,9 @@ Please run [main.py](gui/main.py) in the gui folder in order to use the GUI.
 
  - Find a way to evaluate string input as functions without the `eval` method.
  
+ - See if I can form it into a PyPi package. 
+ [How-to](https://medium.com/@joel.barmettler/how-to-upload-your-python-package-to-pypi-65edc5fe9c56).
+ 
 # Contributing
 
 Contributions are highly appreciated especially bug fixes, new color schemes and presets.

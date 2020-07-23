@@ -193,12 +193,12 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
                                                filter="PNG file (*.png);;JPEG file (*.jpg)",
                                                directory=default,
                                                supportedSchemes=["png", "jpg"])
-        file_name = file_name[0].fileName()
+        file_name = QUrl.toLocalFile(file_name[0])
 
         if file_name != "":
             img = self.img.copy()
             img.thumbnail((width, height))
-            self.img.save(file_name, quality=self.qualitySlider.value())
+            img.save(file_name, quality=self.qualitySlider.value())
 
     def reset_hsb(self):
         self.hueSlider.setValue(100)

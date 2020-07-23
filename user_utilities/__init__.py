@@ -25,7 +25,9 @@ def make_gif(folder_path: str, output_file: str, fps=30, compress=True):
         for x in re.findall(r'[^0-9]|[0-9]+', var)
     ])
 
-    with imageio.get_writer(output_file, mode='I', fps=fps) as writer:
+    kwargs = {'macro_block_size': None}  # avoids a resize warning not being a multiple of 16.
+
+    with imageio.get_writer(output_file, mode='I', fps=fps, **kwargs) as writer:
         for filename in file_names:
             image = imageio.imread(filename)
             writer.append_data(image)
