@@ -9,8 +9,8 @@ from gui.generated_ui import Ui_MainWindow
 from ast import literal_eval
 import traceback
 from numba.cuda.cudadrv.driver import CudaAPIError
-
-from PyQt5.QtCore import QThread, pyqtSignal
+import time
+from PyQt5.QtCore import QThread, pyqtSignal, QObject
 
 
 def excepthook(type_, value, traceback_):
@@ -21,17 +21,15 @@ def excepthook(type_, value, traceback_):
 sys.excepthook = excepthook
 
 
-class GenerateImageThread(QThread):
+# I know this is a terrible way of handling threads but I don't know better and it works
+class GenerateImageWorker(QObject):
     signal = pyqtSignal(Image.Image)
 
     def __init__(self, settings: Settings, progress_bar, stop_flag):
-        QThread.__init__(self)
+        super().__init__()
         self.settings = settings
         self.progress_bar = progress_bar
         self.stop_flag = stop_flag
-
-    def __del__(self):
-        self.wait()
 
     def run(self):
         try:
@@ -51,7 +49,7 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
     def __init__(self):
         super(MainGUI, self).__init__()
         self.setupUi(self)
-        self.img: Image.Image = Image.open("../images/showcase/cave.png")
+        self.img: Image.Image = Image.open("./startup.png")
         self.adj_img = self.img.copy()
         self.update_image()
         self.connect_buttons()
@@ -61,6 +59,7 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.orbitTypeComboBox.addItems(["0", "1", "2", "3", "4"])
         self.presetNameComboBox.addItems(presets.keys())
         self.generate_image_thread = None
+        self.generate_image_worker = None
         self.stop_flag = QtWidgets.QProgressBar()
         self.stop_flag.setValue(0)
 
@@ -86,6 +85,9 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
             "brightness": self.brightnessSlider,
             "quality": self.qualitySlider
         }
+
+        # need this otherwise if you clicked too fast on startup, it would crash
+        time.sleep(1)
 
     def connect_buttons(self):
         self.refreshButton.clicked.connect(self.preview)
@@ -114,19 +116,28 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         if settings is None:
             return
 
-        # perform creation
-        self.generate_image_thread = GenerateImageThread(settings,
+        # I know this is a terrible way of handling threads but I don't know better and it works
+        if self.generate_image_thread:
+            self.generate_image_thread.quit()
+            self.generate_image_thread.wait()
+        self.generate_image_worker = GenerateImageWorker(settings,
                                                          self.previewProgressBar,
                                                          self.stop_flag)
-        self.generate_image_thread.signal.connect(self.finish_preview)
+        self.generate_image_thread = QThread()
+        self.generate_image_worker.moveToThread(self.generate_image_thread)
+        self.generate_image_worker.signal.connect(self.finish_preview)
+        self.generate_image_thread.started.connect(self.generate_image_worker.run)
         self.generate_image_thread.start()
+        QApplication.processEvents()
 
         # self.img = create_image(settings, progress_bar=self.previewProgressBar)
         # self.perform_adjustments()
 
     def finish_preview(self, img: Image.Image):
         self.img = img
+        QApplication.processEvents()
         self.perform_adjustments()
+        QApplication.processEvents()
 
     def perform_adjustments(self):
         self.adj_img = self.img.copy()
@@ -138,9 +149,9 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
             self.adj_img = post_processing.remove_centre_vertical_pixels(self.adj_img)
 
         self.adj_img = post_processing.enhance(self.adj_img,
-                                           self.hueSlider.value() / 100,
-                                           self.saturationSlider.value() / 100,
-                                           self.brightnessSlider.value() / 100)
+                                               self.hueSlider.value() / 100,
+                                               self.saturationSlider.value() / 100,
+                                               self.brightnessSlider.value() / 100)
 
         self.update_image()
 
@@ -306,7 +317,7 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
                                                filter="Text file (*.txt)",
                                                directory=default,
                                                supportedSchemes=["txt"])
-        file_name = file_name[0].fileName()
+        file_name = QUrl.toLocalFile(file_name[0])
         if file_name != "":
             with open(file_name, "w") as f:
                 f.write(str(d))
@@ -316,7 +327,7 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
                                                caption="Open image settings as text.",
                                                filter="Text file (*.txt)",
                                                supportedSchemes=["txt"])
-        file_name = file_name[0].fileName()
+        file_name = QUrl.toLocalFile(file_name[0])
         if file_name != "":
             with open(file_name, "r") as f:
                 d = literal_eval(f.read())

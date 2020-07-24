@@ -107,6 +107,8 @@ def create_image(settings: Settings, verbose: typing.Union[int, bool] = False,
         print("Time taken:", end_time - start_time)
 
     if output is None:
+        if progress_bar is not None:
+            progress_bar.setValue(0)
         return
 
     output = color(output, settings.tipe, settings.color_scheme, settings.max_iter)

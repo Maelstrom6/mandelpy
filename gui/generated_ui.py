@@ -410,7 +410,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuEdit.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.mainTabWidget.setCurrentIndex(1)
+        self.mainTabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         MainWindow.setTabOrder(self.mainTabWidget, self.realFocusLineEdit)
         MainWindow.setTabOrder(self.realFocusLineEdit, self.imaginaryFocusLineEdit)
