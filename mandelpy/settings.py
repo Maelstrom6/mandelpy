@@ -305,5 +305,12 @@ presets = {
                         # fn=lambda zn, c: power(zn, 3) + c
                         fn="power(z, 3) + c",
                         mirror_x=True,
-                        mirror_y=True)
+                        mirror_y=True),
+
+    "titan": Settings(max_iter=500, tipe="buddha",
+                      transform="1/tan(sqrt(z))",
+                      inv_transform="(atan(1/z))**2",
+                      mirror_x=True,
+                      width=4320, height=7680,
+                      left=-3, right=3, top=5.333333333333, bottom=-5.333333333333)
 }

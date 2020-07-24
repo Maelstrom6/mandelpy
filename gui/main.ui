@@ -43,7 +43,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
@@ -598,6 +598,19 @@
        </item>
       </layout>
      </widget>
+     <widget class="QPushButton" name="refreshAdjButton">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>510</y>
+        <width>131</width>
+        <height>28</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Refresh adjustments</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="tab_3">
      <attribute name="title">
@@ -656,7 +669,7 @@
    <widget class="QProgressBar" name="previewProgressBar">
     <property name="geometry">
      <rect>
-      <x>970</x>
+      <x>1080</x>
       <y>580</y>
       <width>118</width>
       <height>23</height>
@@ -765,6 +778,19 @@
       </widget>
      </item>
     </layout>
+   </widget>
+   <widget class="QPushButton" name="cancelButton">
+    <property name="geometry">
+     <rect>
+      <x>970</x>
+      <y>580</y>
+      <width>101</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Cancel preview</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

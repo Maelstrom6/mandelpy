@@ -7,6 +7,43 @@ from PIL import Image
 import sys
 from gui.generated_ui import Ui_MainWindow
 from ast import literal_eval
+import traceback
+from numba.cuda.cudadrv.driver import CudaAPIError
+
+from PyQt5.QtCore import QThread, pyqtSignal
+
+
+def excepthook(type_, value, traceback_):
+    traceback.print_exception(type_, value, traceback_)
+    QtCore.qFatal('')
+
+
+sys.excepthook = excepthook
+
+
+class GenerateImageThread(QThread):
+    signal = pyqtSignal(Image.Image)
+
+    def __init__(self, settings: Settings, progress_bar, stop_flag):
+        QThread.__init__(self)
+        self.settings = settings
+        self.progress_bar = progress_bar
+        self.stop_flag = stop_flag
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        try:
+            img = create_image(self.settings,
+                               progress_bar=self.progress_bar,
+                               stop_flag=self.stop_flag)
+            if img is None:  # if stopped
+                return
+            else:
+                self.signal.emit(img)
+        except CudaAPIError:
+            pass
 
 
 class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
@@ -14,7 +51,8 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
     def __init__(self):
         super(MainGUI, self).__init__()
         self.setupUi(self)
-        self.img = Image.open("../images/showcase/cave.png")
+        self.img: Image.Image = Image.open("../images/showcase/cave.png")
+        self.adj_img = self.img.copy()
         self.update_image()
         self.connect_buttons()
         self.connect_actions()
@@ -22,6 +60,9 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.colorSchemeComboBox.addItems(["0", "1", "2", "3", "4", "5"])
         self.orbitTypeComboBox.addItems(["0", "1", "2", "3", "4"])
         self.presetNameComboBox.addItems(presets.keys())
+        self.generate_image_thread = None
+        self.stop_flag = QtWidgets.QProgressBar()
+        self.stop_flag.setValue(0)
 
         self.settings_mapper = {
             "width": self.computedWidthLineEdit,
@@ -51,6 +92,8 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.saveButton.clicked.connect(self.save)
         self.resetHSBButton.clicked.connect(self.reset_hsb)
         self.loadPresetButton.clicked.connect(self.load_preset)
+        self.cancelButton.clicked.connect(self.cancel_preview)
+        self.refreshAdjButton.clicked.connect(self.perform_adjustments)
 
     def connect_actions(self):
         self.actionNew.triggered.connect(self.new)
@@ -60,24 +103,41 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.actionSave.triggered.connect(self.save)
         self.actionSave_As.triggered.connect(self.save)
 
+    def cancel_preview(self):
+        self.stop_flag.setValue(1)
+
     def preview(self):
         self.clear_error_messages()
+        self.stop_flag.setValue(0)
         QApplication.processEvents()
         settings = self.get_settings()
         if settings is None:
             return
 
         # perform creation
-        self.img = create_image(settings, progress_bar=self.previewProgressBar)
+        self.generate_image_thread = GenerateImageThread(settings,
+                                                         self.previewProgressBar,
+                                                         self.stop_flag)
+        self.generate_image_thread.signal.connect(self.finish_preview)
+        self.generate_image_thread.start()
 
-        # perform adjustments
+        # self.img = create_image(settings, progress_bar=self.previewProgressBar)
+        # self.perform_adjustments()
+
+    def finish_preview(self, img: Image.Image):
+        self.img = img
+        self.perform_adjustments()
+
+    def perform_adjustments(self):
+        self.adj_img = self.img.copy()
+
         if self.removeCentreHorizontalCheckBox.isChecked():
-            self.img = post_processing.remove_centre_horizontal_pixels(self.img)
+            self.adj_img = post_processing.remove_centre_horizontal_pixels(self.img)
 
         if self.removeCentreVerticalCheckBox.isChecked():
-            self.img = post_processing.remove_centre_vertical_pixels(self.img)
+            self.adj_img = post_processing.remove_centre_vertical_pixels(self.adj_img)
 
-        self.img = post_processing.enhance(self.img,
+        self.adj_img = post_processing.enhance(self.adj_img,
                                            self.hueSlider.value() / 100,
                                            self.saturationSlider.value() / 100,
                                            self.brightnessSlider.value() / 100)
@@ -85,7 +145,7 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.update_image()
 
     def update_image(self):
-        img = self.img.copy()
+        img = self.adj_img.copy()
         img.thumbnail((800, 800))
         # bytes_image = self.img.tobytes("raw", "RGB")
         # image = QtGui.QImage(bytes_image, self.img.size[0], self.img.size[1],
