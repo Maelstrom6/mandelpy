@@ -40,45 +40,8 @@ def compile_kernel(settings: Settings):
     return f
 
 
-def create_array(settings: Settings, verbose=False,
-                 progress_bar=None, stop_flag=None) -> typing.Union[np.ndarray, None]:
-    """Generates the numpy array of visits to particular points. This is done in blocks since the
-    kernel does not allow jobs of size (2000, 2000)."""
-    # The mandelbrot has a smoothing factor that results in float outputs
-    if (settings.tipe == "mand") or (settings.tipe == "julia"):
-        dtype = np.float
-    else:
-        dtype = np.int
-    # Define the output array that will store pixel data
-    output = np.zeros([settings.width, settings.height, 3], dtype=dtype)
-
-    jitted_function = compile_kernel(settings)
-
-    blocks = identify_blocks(settings.width, settings.height,
-                             settings.mirror_x, settings.mirror_y,
-                             settings.block_size)
-    for i, block in enumerate(blocks):
-        if stop_flag is not None:
-            if stop_flag.value() == 1:
-                return
-        if progress_bar is not None:
-            progress_bar.setValue(int(90*(i+1)/len(blocks)))
-        if verbose:
-            print(f"Creating block {i + 1} of {len(blocks)}:", block)
-
-        jitted_function[block[2], block[3]](output, block[0], block[1])
-
-    # Finish up with mirroring operations
-    if settings.mirror_x:
-        output = output + np.flip(output, 1)
-    if settings.mirror_y:
-        output = output + np.flip(output, 0)
-
-    return output
-
-
-def create_image(settings: Settings, verbose: typing.Union[int, bool] = False,
-                 progress_bar=None, stop_flag=None) -> typing.Union[Image.Image, None]:
+def create_image(settings: Settings, verbose: typing.Union[int, bool] = False) -> \
+        typing.Union[Image.Image, None]:
     """Creates a Pillow image of a fractal using the given settings.
 
     Args:
@@ -86,10 +49,6 @@ def create_image(settings: Settings, verbose: typing.Union[int, bool] = False,
         verbose: Whether to print its workings. If it is an `int` then gives different amounts of
             information, with amounts increasing the higher level you go. If it is `True` then
             prints at the most verbose.
-        progress_bar: An object that has a method `setValue(x: int)`  that will be updated in
-            order to keep track of progress.
-        stop_flag: An object that has a method `value()` that is a live value of whether to halt
-            the execution.
 
     Returns:The generated Pillow Image
 
@@ -97,25 +56,72 @@ def create_image(settings: Settings, verbose: typing.Union[int, bool] = False,
         If the dependencies have not been properly installed, it will throw some Runtime errors.
 
     """
-    if progress_bar is not None:
-        progress_bar.setValue(0)
-    start_time = time.time()
-    output = create_array(settings, verbose, progress_bar, stop_flag)
-    end_time = time.time()
+    with Generator(settings, verbose) as g:
+        blocks = g.blocks
+        for i, block in enumerate(blocks):
+            if verbose:
+                print(f"Creating block {i + 1} of {len(blocks)}:", block)
+            g.run_block(block)
 
-    if verbose > 0:
-        print("Time taken:", end_time - start_time)
+        img = g.finished_img()
+    return img
 
-    if output is None:
-        if progress_bar is not None:
-            progress_bar.setValue(0)
-        return
 
-    output = color(output, settings.tipe, settings.color_scheme, settings.max_iter)
-    if progress_bar is not None:
-        progress_bar.setValue(95)
+class Generator:
+    def __init__(self, settings: Settings, verbose: typing.Union[int, bool] = False):
+        """Initializes the object that will create the Pillow Image for you.
+        After initialization, you need to get its `blocks` attribute and loop through them.
+        Inside the loop you need `generator.run_block(block)` and after the loop, you need
+        `img = generator.finished_img()`"""
+        self.settings = settings
+        self.verbose = verbose
+        self.start_time = time.time()
 
-    output = output.astype(np.uint8).transpose((1, 0, 2))
-    if progress_bar is not None:
-        progress_bar.setValue(100)
-    return Image.fromarray(output)
+        # The mandelbrot has a smoothing factor that results in float outputs
+        if (settings.tipe == "mand") or (settings.tipe == "julia"):
+            dtype = np.float
+        else:
+            dtype = np.int
+
+        # Define the output array that will store pixel data
+        self.output = np.zeros([settings.width, settings.height, 3], dtype=dtype)
+
+        self.jitted_function = compile_kernel(settings)
+
+        self.blocks = identify_blocks(settings.width, settings.height,
+                                      settings.mirror_x, settings.mirror_y,
+                                      settings.block_size)
+        self.end_time = 0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def run_block(self, block):
+        """Generates the numpy array of visits to particular points in the given block. This is
+            done in blocks since the
+            kernel does not allow jobs of size (2000, 2000)."""
+        self.jitted_function[block[2], block[3]](self.output, block[0], block[1])
+
+    def finished_img(self) -> typing.Union[Image.Image, None]:
+        """Finalizes after looping to generate the final image"""
+        if self.output is None:
+            return
+
+        # Finish up with mirroring operations
+        if self.settings.mirror_x:
+            self.output: np.ndarray = self.output + np.flip(self.output, 1)
+        if self.settings.mirror_y:
+            self.output: np.ndarray = self.output + np.flip(self.output, 0)
+
+        self.end_time = time.time()
+        if self.verbose > 0:
+            print("Time taken:", self.end_time - self.start_time)
+
+        output = color(self.output, self.settings.tipe,
+                       self.settings.color_scheme, self.settings.max_iter)
+
+        output = output.astype(np.uint8).transpose((1, 0, 2))
+        return Image.fromarray(output)

@@ -1,16 +1,16 @@
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QUrl
 from PyQt5.QtWidgets import QApplication, QFileDialog
-from mandelpy import Settings, create_image, presets, post_processing
+from mandelpy import Settings, presets, post_processing, Generator
 from mandelpy.validators import *
 from PIL import Image
 import sys
 from gui.generated_ui import Ui_MainWindow
 from ast import literal_eval
 import traceback
-from numba.cuda.cudadrv.driver import CudaAPIError
+from numba.cuda.cudadrv.driver import CudaAPIError, LinkerError
 import time
-from PyQt5.QtCore import QThread, pyqtSignal, QObject
+from PyQt5.QtCore import QThread, pyqtSignal
 
 
 def excepthook(type_, value, traceback_):
@@ -21,30 +21,40 @@ def excepthook(type_, value, traceback_):
 sys.excepthook = excepthook
 
 
-# I know this is a terrible way of handling threads but I don't know better and it works
-class GenerateImageWorker(QObject):
-    signal = pyqtSignal(Image.Image)
+class GenerateImageThread(QThread):
+    progress = pyqtSignal(int)
+    output = pyqtSignal(Image.Image)
 
-    def __init__(self, settings: Settings, progress_bar, stop_flag):
+    def __init__(self, settings: Settings):
         super().__init__()
         self.settings = settings
-        self.progress_bar = progress_bar
-        self.stop_flag = stop_flag
+        self.running = True
+
+    def __del__(self):
+        self.wait()
 
     def run(self):
-        try:
-            img = create_image(self.settings,
-                               progress_bar=self.progress_bar,
-                               stop_flag=self.stop_flag)
-            if img is None:  # if stopped
-                return
-            else:
-                self.signal.emit(img)
-        except CudaAPIError:
-            pass
+        with Generator(self.settings) as g:
+            blocks = g.blocks
+            for i, block in enumerate(blocks):
+                if self.running is False:
+                    return
+                self.progress.emit(int(90 * (i + 1) / len(blocks)))
+                try:
+                    g.run_block(block)
+                except CudaAPIError:  # blocks too big
+                    self.output.emit(Image.open("./cuda_error.jpg"))
+                    return
+                except LinkerError:  # tried x**n which does not exist for n!=2
+                    self.output.emit(Image.open("./cuda_error.jpg"))
+                    return
+            self.progress.emit(90)
+            img = g.finished_img()
+            self.output.emit(img)
 
 
 class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
+    stop_signal = pyqtSignal(int)
 
     def __init__(self):
         super(MainGUI, self).__init__()
@@ -59,7 +69,6 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.orbitTypeComboBox.addItems(["0", "1", "2", "3", "4"])
         self.presetNameComboBox.addItems(presets.keys())
         self.generate_image_thread = None
-        self.generate_image_worker = None
         self.stop_flag = QtWidgets.QProgressBar()
         self.stop_flag.setValue(0)
 
@@ -105,9 +114,6 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
         self.actionSave.triggered.connect(self.save)
         self.actionSave_As.triggered.connect(self.save)
 
-    def cancel_preview(self):
-        self.stop_flag.setValue(1)
-
     def preview(self):
         self.clear_error_messages()
         self.stop_flag.setValue(0)
@@ -118,26 +124,23 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
 
         # I know this is a terrible way of handling threads but I don't know better and it works
         if self.generate_image_thread:
+            self.cancel_preview()
             self.generate_image_thread.quit()
             self.generate_image_thread.wait()
-        self.generate_image_worker = GenerateImageWorker(settings,
-                                                         self.previewProgressBar,
-                                                         self.stop_flag)
-        self.generate_image_thread = QThread()
-        self.generate_image_worker.moveToThread(self.generate_image_thread)
-        self.generate_image_worker.signal.connect(self.finish_preview)
-        self.generate_image_thread.started.connect(self.generate_image_worker.run)
-        self.generate_image_thread.start()
-        QApplication.processEvents()
 
+        self.generate_image_thread = GenerateImageThread(settings)
+        self.generate_image_thread.progress.connect(self.update_progress)
+        self.generate_image_thread.output.connect(self.finish_preview)
+        self.generate_image_thread.start()
+
+        # if you don't want threading
         # self.img = create_image(settings, progress_bar=self.previewProgressBar)
         # self.perform_adjustments()
 
     def finish_preview(self, img: Image.Image):
+        self.previewProgressBar.setValue(100)
         self.img = img
-        QApplication.processEvents()
         self.perform_adjustments()
-        QApplication.processEvents()
 
     def perform_adjustments(self):
         self.adj_img = self.img.copy()
@@ -155,13 +158,17 @@ class MainGUI(Ui_MainWindow, QtWidgets.QMainWindow):
 
         self.update_image()
 
+    def update_progress(self, value):
+        self.previewProgressBar.setValue(value)
+
+    def cancel_preview(self):
+        self.previewProgressBar.setValue(0)
+        if self.generate_image_thread:
+            self.generate_image_thread.running = False
+
     def update_image(self):
         img = self.adj_img.copy()
         img.thumbnail((800, 800))
-        # bytes_image = self.img.tobytes("raw", "RGB")
-        # image = QtGui.QImage(bytes_image, self.img.size[0], self.img.size[1],
-        #                      QtGui.QImage.Format_RGB888)
-        # pix_map = QtGui.QPixmap.fromImage(image)
         pix_map = img.toqpixmap()
         self.label.setPixmap(pix_map)
         self.label.adjustSize()

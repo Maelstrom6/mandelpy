@@ -14,4 +14,4 @@ Examples:
 
 from .settings import Settings, presets
 from .validators import power
-from .generator import create_image
+from .generator import create_image, Generator
