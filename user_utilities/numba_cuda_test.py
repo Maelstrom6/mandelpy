@@ -14,3 +14,5 @@ output = np.zeros(shape, dtype=np.int)
 double_data[shape[0], shape[1]](output)
 worked = "Yes." if (output == np.ones(shape, dtype=np.int)).all() else "No."
 print("Did it work?", worked)
+
+print(cuda.detect())
